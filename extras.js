@@ -1,4 +1,4 @@
-/* FORWARD – extra funktioner: vattenlogg på dashboarden */
+/* FORWARD – extra funktioner: vattenlogg på dashboarden, laddar matdagboken */
 (function(){
   var KEY = 'forward_water_v1';
   var GOAL = 8;
@@ -69,4 +69,18 @@
     };
     window.renderDashboard();
   }
+
+  /* Rätta rubriken på matmålskortet i Inställningar */
+  var settingsView = document.getElementById('view-settings');
+  if (settingsView && window.MutationObserver) {
+    new MutationObserver(function(){
+      var h = document.querySelector('#food-goal-card h3');
+      if (h && h.textContent !== 'Matmål per dag') h.textContent = 'Matmål per dag';
+    }).observe(settingsView, {childList:true, subtree:true});
+  }
+
+  /* Matdagboken */
+  var food = document.createElement('script');
+  food.src = 'food.js';
+  document.body.appendChild(food);
 })();
