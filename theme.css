@@ -116,11 +116,16 @@ label{font-size:.7rem;letter-spacing:.09em;}
 .badge{border-radius:20px;}
 
 /* Navigation */
-#sidebar{padding:28px 14px 20px;}
+#sidebar{padding:28px 14px 20px;overflow-y:auto;}
 .navlink{border-radius:14px;padding:11px 14px;}
 .navlink.active::before{left:-14px;}
-#bottomnav{border-radius:24px;padding:8px 6px;box-shadow:0 10px 30px rgba(0,0,0,.18);}
-#bottomnav .navlink{font-size:.58rem;gap:4px;}
+#bottomnav{
+  border-radius:24px;padding:8px 4px;box-shadow:0 10px 30px rgba(0,0,0,.18);
+  justify-content:flex-start;overflow-x:auto;overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+#bottomnav::-webkit-scrollbar{display:none;}
+#bottomnav .navlink{font-size:.58rem;gap:4px;flex:0 0 auto;min-width:60px;}
 #bottomnav svg{width:21px;height:21px;}
 
 /* Tomma lägen: vänligare */
