@@ -1,6 +1,7 @@
-/* FORWARD – meny till vänster även på telefon + välj vilka delar som ska synas */
+/* FORWARD – meny till vänster även på telefon, fällbar meny, och välj vilka delar som syns */
 (function(){
   var HIDE_KEY = 'forward_hidden_sections_v1';
+  var COLLAPSE_KEY = 'forward_nav_collapsed_v1';
   var LOCKED = ['dashboard','settings'];
 
   var css = document.createElement('style');
@@ -9,7 +10,7 @@
     'html.nav-left #bottomnav{display:none !important;}',
     'html.nav-left #sidebar{display:flex !important;width:88px;padding:14px 6px calc(16px + env(safe-area-inset-bottom,0px));',
       'overflow-y:auto;gap:2px;}',
-    'html.nav-left #sidebar .brand{font-size:0;padding:6px 0 12px;justify-content:center;}',
+    'html.nav-left #sidebar .brand{font-size:0;padding:6px 0 10px;justify-content:center;}',
     'html.nav-left #sidebar .brand .dot{width:12px;height:12px;}',
     'html.nav-left .navlink{flex-direction:column;gap:4px;font-size:.56rem;text-align:center;padding:9px 2px;line-height:1.2;}',
     'html.nav-left .navlink svg{width:20px;height:20px;}',
@@ -20,6 +21,26 @@
     'html.nav-left .fab-menu{right:14px !important;bottom:88px !important;}',
     'html.nav-left #rest-chip{left:100px !important;bottom:16px !important;}',
     'html.nav-left #toast-wrap{bottom:20px;}',
+
+    /* Fälld meny */
+    'html.nav-hidden #sidebar{display:none !important;}',
+    'html.nav-hidden #bottomnav{display:none !important;}',
+    'html.nav-hidden main{margin-left:0 !important;max-width:900px !important;margin-right:auto !important;',
+      'padding:18px 16px 70px !important;}',
+    'html.nav-hidden #rest-chip{left:16px !important;}',
+
+    /* Knappen som fäller in och ut */
+    '#nav-toggle{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;',
+      'background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:12px;',
+      'padding:8px 10px;margin-bottom:10px;font-size:.78rem;font-weight:600;}',
+    '#nav-toggle:hover{color:var(--text);background:var(--card2);}',
+    '#nav-open{position:fixed;z-index:80;left:12px;top:calc(12px + env(safe-area-inset-top,0px));',
+      'display:none;align-items:center;justify-content:center;gap:8px;width:46px;height:46px;cursor:pointer;',
+      'border-radius:14px;border:1px solid var(--border-strong);background:var(--card);color:var(--text);',
+      'box-shadow:var(--shadow);font-size:1.1rem;}',
+    'html.nav-hidden #nav-open{display:flex;}',
+    'html.nav-hidden main{padding-top:70px !important;}',
+
     /* Sektionsväljaren */
     '.secpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:6px;}',
     '.secpick button{padding:10px 12px;border-radius:999px;cursor:pointer;font-size:.8rem;font-weight:600;',
@@ -28,6 +49,38 @@
   ].join('');
   document.head.appendChild(css);
 
+  /* ---------- Fäll in och ut ---------- */
+  function collapsed(){ return localStorage.getItem(COLLAPSE_KEY) === '1'; }
+  function setCollapsed(v){
+    localStorage.setItem(COLLAPSE_KEY, v ? '1' : '0');
+    document.documentElement.classList.toggle('nav-hidden', !!v);
+  }
+
+  function buildToggles(){
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar && !document.getElementById('nav-toggle')) {
+      var t = document.createElement('button');
+      t.id = 'nav-toggle';
+      t.type = 'button';
+      t.innerHTML = '☰';
+      t.title = 'Dölj menyn';
+      t.onclick = function(){ setCollapsed(true); };
+      var brand = sidebar.querySelector('.brand');
+      if (brand && brand.nextSibling) sidebar.insertBefore(t, brand.nextSibling);
+      else sidebar.insertBefore(t, sidebar.firstChild);
+    }
+    if (!document.getElementById('nav-open')) {
+      var o = document.createElement('button');
+      o.id = 'nav-open';
+      o.type = 'button';
+      o.innerHTML = '☰';
+      o.title = 'Visa menyn';
+      o.onclick = function(){ setCollapsed(false); };
+      document.body.appendChild(o);
+    }
+  }
+
+  /* ---------- Layout ---------- */
   function hidden(){
     try { var a = JSON.parse(localStorage.getItem(HIDE_KEY)); return Array.isArray(a) ? a : []; } catch(e){ return []; }
   }
@@ -40,6 +93,7 @@
   }
   function applyLayout(){
     document.documentElement.classList.toggle('nav-left', phoneMode());
+    document.documentElement.classList.toggle('nav-hidden', collapsed());
   }
 
   function applyHidden(){
@@ -109,15 +163,16 @@
   }
   if (typeof window.setDeviceMode === 'function') {
     var origMode = window.setDeviceMode;
-    window.setDeviceMode = function(){ var r = origMode.apply(this, arguments); applyLayout(); applyHidden(); return r; };
+    window.setDeviceMode = function(){ var r = origMode.apply(this, arguments); buildToggles(); applyLayout(); applyHidden(); return r; };
   }
   if (typeof window.setView === 'function') {
     var origView = window.setView;
-    window.setView = function(){ var r = origView.apply(this, arguments); applyHidden(); return r; };
+    window.setView = function(){ var r = origView.apply(this, arguments); buildToggles(); applyHidden(); return r; };
   }
   window.matchMedia('(max-width:860px)').addEventListener('change', applyLayout);
 
+  buildToggles();
   applyLayout();
   applyHidden();
-  setTimeout(function(){ applyLayout(); applyHidden(); }, 400);
+  setTimeout(function(){ buildToggles(); applyLayout(); applyHidden(); }, 400);
 })();
