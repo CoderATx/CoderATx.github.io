@@ -1,4 +1,4 @@
-/* FORWARD – extra funktioner: vattenlogg på dashboarden, laddar matdagboken */
+/* FORWARD – extra funktioner: vattenlogg på dashboarden, laddar matdagbok och meny */
 (function(){
   var KEY = 'forward_water_v1';
   var GOAL = 8;
@@ -79,8 +79,13 @@
     }).observe(settingsView, {childList:true, subtree:true});
   }
 
-  /* Matdagboken */
+  /* Matdagboken, sedan menyn */
   var food = document.createElement('script');
   food.src = 'food.js';
+  food.onload = food.onerror = function(){
+    var nav = document.createElement('script');
+    nav.src = 'nav.js';
+    document.body.appendChild(nav);
+  };
   document.body.appendChild(food);
 })();
