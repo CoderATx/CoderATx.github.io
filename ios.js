@@ -1,4 +1,4 @@
-/* FORWARD – iOS-läge + enhetsläge (Auto / Telefon / Dator) */
+/* FORWARD – enhetsval vid start (Telefon / Dator / Auto) + iOS-läge */
 (function(){
   var ua = navigator.userAgent || '';
   var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -38,11 +38,28 @@
     'html.dev-desktop .fab-menu{right:28px !important;bottom:100px !important;}',
     'html.dev-desktop #rest-chip{left:26px !important;bottom:26px !important;}',
 
-    /* --- Väljaren --- */
+    /* --- Väljaren i Inställningar --- */
     '.devpick{display:flex;gap:8px;flex-wrap:wrap;}',
     '.devpick button{flex:1;min-width:92px;padding:11px 12px;border-radius:12px;cursor:pointer;font-weight:600;',
       'font-size:.85rem;border:1px solid var(--border-strong,rgba(255,255,255,.16));background:transparent;color:inherit;}',
     '.devpick button.on{background:linear-gradient(120deg,#7c83ff,#9a7cff);border-color:transparent;color:#fff;}',
+
+    /* --- Startfrågan --- */
+    '#dev-ask{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;',
+      'padding:20px;background:rgba(4,4,9,.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}',
+    '#dev-ask .box{width:100%;max-width:420px;background:var(--card,#0e0e18);',
+      'border:1px solid var(--border-strong,rgba(255,255,255,.16));border-radius:22px;padding:24px 22px;',
+      'box-shadow:0 20px 60px rgba(0,0,0,.6);text-align:center;color:var(--text,#f4f3f9);}',
+    '#dev-ask h2{font-size:1.25rem;margin:0 0 6px;}',
+    '#dev-ask p{font-size:.88rem;color:var(--muted,#a3a2b3);margin:0 0 18px;line-height:1.5;}',
+    '#dev-ask .opts{display:flex;gap:12px;}',
+    '#dev-ask .opts button{flex:1;padding:18px 10px;border-radius:16px;cursor:pointer;font-weight:700;font-size:.9rem;',
+      'border:1px solid var(--border-strong,rgba(255,255,255,.16));background:var(--card2,#151522);color:inherit;',
+      'display:flex;flex-direction:column;gap:8px;align-items:center;}',
+    '#dev-ask .opts button .em{font-size:1.7rem;}',
+    '#dev-ask .opts button.suggest{border-color:#7c83ff;box-shadow:0 0 0 3px rgba(124,131,255,.18);}',
+    '#dev-ask .auto{margin-top:14px;background:none;border:none;color:var(--muted,#a3a2b3);',
+      'font-size:.82rem;cursor:pointer;text-decoration:underline;}',
 
     /* --- iOS-tips --- */
     '#ios-tip{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:400;',
@@ -61,10 +78,12 @@
   var viewportMeta = document.querySelector('meta[name="viewport"]');
   var viewportDefault = viewportMeta ? viewportMeta.getAttribute('content') : 'width=device-width, initial-scale=1, viewport-fit=cover';
   var smallScreen = window.matchMedia('(max-width:860px)').matches;
+  var touch = isIOS || /Android/i.test(ua) || navigator.maxTouchPoints > 1;
+  var guess = (smallScreen || touch) ? 'phone' : 'desktop';
 
-  function getMode(){
+  function stored(){
     var m = localStorage.getItem(MODE_KEY);
-    return (m === 'phone' || m === 'desktop') ? m : 'auto';
+    return (m === 'phone' || m === 'desktop' || m === 'auto') ? m : null;
   }
 
   function applyMode(mode){
@@ -72,29 +91,55 @@
     if (mode === 'phone') root.classList.add('dev-phone');
     if (mode === 'desktop') root.classList.add('dev-desktop');
     if (viewportMeta) {
-      /* datorläge på en liten skärm: rita som en bred skärm och zooma ut */
       if (mode === 'desktop' && smallScreen) viewportMeta.setAttribute('content','width=1100');
       else viewportMeta.setAttribute('content', viewportDefault);
     }
   }
 
-  function setMode(mode){
+  function setMode(mode, quiet){
     localStorage.setItem(MODE_KEY, mode);
     applyMode(mode);
     if (typeof renderSettings === 'function') renderSettings();
-    if (typeof toast === 'function') {
+    if (!quiet && typeof toast === 'function') {
       toast(mode === 'phone' ? 'Telefonläge på' : mode === 'desktop' ? 'Datorläge på' : 'Auto: följer skärmen');
     }
   }
   window.setDeviceMode = setMode;
 
-  applyMode(getMode());
+  applyMode(stored() || 'auto');
 
+  /* ---------- Frågan direkt när man går in ---------- */
+  function askDevice(){
+    if (document.getElementById('dev-ask')) return;
+    var wrap = document.createElement('div');
+    wrap.id = 'dev-ask';
+    wrap.innerHTML =
+      '<div class="box">' +
+        '<h2>Hur kör du FORWARD idag?</h2>' +
+        '<p>Välj hur appen ska se ut. Du kan byta när du vill under Inställningar.</p>' +
+        '<div class="opts">' +
+          '<button data-m="phone" class="' + (guess === 'phone' ? 'suggest' : '') + '"><span class="em">📱</span>Telefon</button>' +
+          '<button data-m="desktop" class="' + (guess === 'desktop' ? 'suggest' : '') + '"><span class="em">💻</span>Dator</button>' +
+        '</div>' +
+        '<button class="auto" data-m="auto">Auto, följ skärmen jag är på</button>' +
+      '</div>';
+    document.body.appendChild(wrap);
+    wrap.querySelectorAll('button').forEach(function(b){
+      b.onclick = function(){
+        setMode(b.getAttribute('data-m'), true);
+        wrap.remove();
+        maybeTip();
+      };
+    });
+  }
+  window.askDeviceMode = askDevice;
+
+  /* ---------- Kort i Inställningar ---------- */
   function deviceCard(){
     var view = document.getElementById('view-settings');
     if (!view || document.getElementById('device-card')) return;
     var grid = view.querySelector('.grid') || view;
-    var mode = getMode();
+    var mode = stored() || 'auto';
     var card = document.createElement('div');
     card.className = 'card';
     card.id = 'device-card';
@@ -105,10 +150,15 @@
         '<button class="' + (mode==='auto'?'on':'') + '" data-m="auto">Auto</button>' +
         '<button class="' + (mode==='phone'?'on':'') + '" data-m="phone">📱 Telefon</button>' +
         '<button class="' + (mode==='desktop'?'on':'') + '" data-m="desktop">💻 Dator</button>' +
-      '</div>';
-    card.querySelectorAll('button').forEach(function(b){
+      '</div>' +
+      '<div class="row" style="margin-top:12px;"><button class="btn ghost" id="dev-ask-again">Fråga mig igen</button></div>';
+    card.querySelectorAll('.devpick button').forEach(function(b){
       b.onclick = function(){ setMode(b.getAttribute('data-m')); };
     });
+    card.querySelector('#dev-ask-again').onclick = function(){
+      localStorage.removeItem(MODE_KEY);
+      askDevice();
+    };
     grid.insertBefore(card, grid.firstChild);
   }
 
@@ -153,9 +203,13 @@
     box.querySelector('.no').onclick = function(){ if(!force) localStorage.setItem(TIP_KEY,'1'); box.remove(); };
   }
 
-  if (isIOS && !standalone && !localStorage.getItem(TIP_KEY)) {
-    setTimeout(function(){ showTip(false); }, 1500);
+  function maybeTip(){
+    if (isIOS && !standalone && !localStorage.getItem(TIP_KEY)) {
+      setTimeout(function(){ showTip(false); }, 1200);
+    }
   }
+
+  if (!stored()) askDevice(); else maybeTip();
 
   var btn = document.getElementById('install-app');
   if (btn && isIOS && !standalone) {
