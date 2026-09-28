@@ -1,0 +1,149 @@
+/* FORWARD – renare tema, inspirerat av Lifesum: ljust, luftigt, mjuka kort */
+
+/* Saknades i appen: utan dessa hamnar knappar och rubriker på varandra */
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.rowbetween{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;}
+.rowbetween > *{min-width:0;}
+
+:root{
+  --radius:24px;
+  --radius-s:14px;
+}
+
+/* Ljust läge: Lifesum-känsla, vitt och grönt */
+:root[data-theme="light"]{
+  --bg:#f6f8f7;
+  --bg2:#ffffff;
+  --card:#ffffff;
+  --card2:#f1f4f3;
+  --text:#16211d;
+  --muted:#657069;
+  --label:#98a29c;
+  --text3:#98a29c;
+  --accent:#23b58a;
+  --accent2:#3fc99c;
+  --grad2:#7fd9bd;
+  --accent-dim:rgba(35,181,138,.12);
+  --good:#23b58a;
+  --danger:#e2617a;
+  --border:rgba(18,40,32,.07);
+  --border-strong:rgba(18,40,32,.14);
+  --shadow:0 10px 30px rgba(20,50,40,.07);
+  --glow:none;
+}
+
+/* Mörkt läge: samma lugn, mindre kontrastkaos */
+:root:not([data-theme="light"]){
+  --bg:#0b0d12;
+  --bg2:#0e1117;
+  --card:#141821;
+  --card2:#1b2029;
+  --border:rgba(255,255,255,.06);
+  --border-strong:rgba(255,255,255,.12);
+  --muted:#9aa3b2;
+  --label:#79828f;
+  --text3:#79828f;
+  --shadow:0 14px 40px rgba(0,0,0,.45);
+}
+
+body{line-height:1.6;letter-spacing:.005em;}
+
+/* Typografi: tydligare hierarki, mindre skrik */
+h1{font-size:1.9rem;letter-spacing:-.025em;margin:2px 0 4px;}
+h2{font-size:1.1rem;margin:34px 0 0;}
+h3{font-size:.72rem;letter-spacing:.1em;opacity:.9;}
+.sub{font-size:.9rem;}
+.date{font-size:.7rem;letter-spacing:.16em;opacity:.8;}
+.big{font-size:1.85rem;letter-spacing:-.03em;}
+
+/* Kort: mjukare, luftigare, ingen hård ram */
+.card,.list-item,.habit-card{
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+  padding:22px 24px;
+}
+.card{margin-top:18px;}
+.card:hover,.list-item:hover{border-color:var(--border);transform:none;}
+.hero-card::before{opacity:.7;}
+.grid{gap:18px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));}
+.grid2{gap:18px;}
+
+/* Knappar: pillerform, lugnare skugga */
+.btn{
+  border-radius:999px;
+  padding:12px 22px;
+  font-size:.87rem;
+  letter-spacing:.01em;
+  box-shadow:0 6px 18px rgba(35,181,138,.18);
+}
+:root:not([data-theme="light"]) .btn{box-shadow:0 6px 18px rgba(124,131,255,.22);}
+.btn.ghost{box-shadow:none;border:1px solid var(--border-strong);}
+.btn:hover{transform:translateY(-1px);}
+.fab{
+  width:62px;height:62px;font-size:1.7rem;
+  box-shadow:0 10px 28px rgba(0,0,0,.28);
+}
+.fab-menu button{border-radius:16px;padding:13px 18px;}
+
+/* Fält: större träffyta, rundare */
+input,select,textarea{border-radius:14px;padding:13px 15px;}
+textarea{min-height:92px;resize:vertical;}
+label{font-size:.7rem;letter-spacing:.09em;}
+.panel{border-radius:var(--radius);padding:22px 24px;border:1px solid var(--border);box-shadow:none;}
+
+/* Taggar och mätare */
+.tag{border-radius:999px;padding:5px 12px;font-size:.73rem;}
+.bar-track{height:10px;border:none;background:var(--card2);}
+.bar-fill{box-shadow:none;}
+.pr-badge{box-shadow:none;}
+.icobox{border-radius:16px;width:42px;height:42px;}
+
+/* Veckostaplar och heatmap */
+.weekbars{height:112px;gap:8px;}
+.weekbars .stick{border-radius:12px;}
+.weekbars .stick.on{box-shadow:none;}
+.hm-cell{border-radius:5px;}
+.hm-cell.on{box-shadow:none;}
+.wchart .col{box-shadow:none;border-radius:12px 12px 6px 6px;}
+
+/* Locked in */
+.lock-day{border-radius:18px;}
+.lock-day.locked{box-shadow:none;}
+
+/* Bilder */
+.imgcard{border-radius:18px;}
+.badge{border-radius:20px;}
+
+/* Navigation */
+#sidebar{padding:28px 14px 20px;}
+.navlink{border-radius:14px;padding:11px 14px;}
+.navlink.active::before{left:-14px;}
+#bottomnav{border-radius:24px;padding:8px 6px;box-shadow:0 10px 30px rgba(0,0,0,.18);}
+#bottomnav .navlink{font-size:.58rem;gap:4px;}
+#bottomnav svg{width:21px;height:21px;}
+
+/* Tomma lägen: vänligare */
+.empty{border-radius:var(--radius);border-style:dashed;padding:34px 18px;}
+
+/* Toast */
+.toast{border-radius:16px;}
+
+/* Vattenkort */
+#water-card .glasses{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+#water-card .glass{
+  width:34px;height:44px;border-radius:8px 8px 12px 12px;cursor:pointer;
+  border:2px solid var(--border-strong);background:transparent;
+  display:flex;align-items:flex-end;justify-content:center;padding:0;transition:all .15s ease;
+}
+#water-card .glass span{display:block;width:100%;height:0;border-radius:4px 4px 8px 8px;
+  background:linear-gradient(180deg,var(--grad2),var(--accent));transition:height .2s ease;}
+#water-card .glass.on span{height:100%;}
+#water-card .glass.on{border-color:transparent;}
+#water-card .wrow{display:flex;align-items:baseline;justify-content:space-between;gap:12px;}
+
+@media(max-width:860px){
+  h1{font-size:1.65rem;}
+  .card,.list-item,.habit-card,.panel{padding:18px 18px;}
+  .grid{gap:14px;}
+}
