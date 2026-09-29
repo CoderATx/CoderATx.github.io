@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>AI Video Studio</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="../icon.svg" />
+<link rel="apple-touch-icon" href="../apple-touch-icon.png" />
+<meta name="theme-color" content="#0b0d12" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<style>
+  :root{--bg:#0b0d12;--card:#141824;--card2:#1b2030;--line:#262c3d;--txt:#e9ecf5;--dim:#98a1b8;--acc:#6c5ce7;--acc2:#00d1b2;--bad:#ff6b6b}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#1a1f35 0%,var(--bg) 60%);color:var(--txt);font:16px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:0 0 64px}
+  .wrap{max-width:820px;margin:0 auto;padding:20px 16px calc(24px + env(safe-area-inset-bottom))}
+  h1{font-size:22px;margin:8px 0 2px;letter-spacing:-.4px}
+  .sub{color:var(--dim);font-size:13px;margin:0 0 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+  label{display:block;font-size:13px;color:var(--dim);margin:0 0 6px}
+  input,select,textarea{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:12px;font:inherit;font-size:15px}
+  textarea{min-height:104px;resize:vertical}
+  button{background:var(--acc);color:#fff;border:0;border-radius:12px;padding:14px 18px;font:inherit;font-weight:600;cursor:pointer;width:100%}
+  button.ghost{background:var(--card2);border:1px solid var(--line);color:var(--txt);font-weight:500}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1}
+  .drop{border:1.5px dashed #33405e;border-radius:14px;padding:26px 16px;text-align:center;color:var(--dim);cursor:pointer;background:var(--card2)}
+  .drop.on{border-color:var(--acc2);color:var(--acc2)}
+  video{width:100%;border-radius:12px;background:#000;margin-top:12px;display:block}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chip{background:var(--card2);border:1px solid var(--line);color:var(--dim);border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer;width:auto}
+  .chip:hover{border-color:var(--acc);color:var(--txt)}
+  .status{font-size:14px;color:var(--dim);margin-top:12px;min-height:20px}
+  .bar{height:6px;background:var(--card2);border-radius:99px;overflow:hidden;margin-top:10px;display:none}
+  .bar i{display:block;height:100%;width:30%;background:linear-gradient(90deg,var(--acc),var(--acc2));animation:sl 1.4s ease-in-out infinite}
+  @keyframes sl{0%{margin-left:-30%}100%{margin-left:100%}}
+  .log{font:12px/1.5 ui-monospace,Menlo,monospace;color:#7d879e;white-space:pre-wrap;max-height:120px;overflow:auto;margin-top:10px}
+  .err{color:var(--bad);font-size:14px;margin-top:10px;white-space:pre-wrap}
+  .hist{display:flex;flex-direction:column;gap:10px}
+  .hitem{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px}
+  .hitem .p{color:var(--dim);font-size:13px;margin-bottom:6px}
+  a{color:var(--acc2)}
+  .tiny{font-size:12px;color:#6f7791;margin-top:10px}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI Video Studio</h1>
+  <p class="sub">Ladda upp en video, beskriv vad du vill ha andrat, sa gor AI:n om den.</p>
+
+  <div class="card" id="keyCard">
+    <label for="key">fal.ai API-nyckel</label>
+    <input id="key" type="password" placeholder="Klistra in din nyckel" autocomplete="off" />
+    <div class="row" style="margin-top:10px">
+      <button id="saveKey">Spara nyckel</button>
+    </div>
+    <p class="tiny">Nyckeln sparas bara lokalt i den har webblasaren. Skaffa en pa <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noopener">fal.ai/dashboard/keys</a>. Du betalar per sekund video du genererar.</p>
+  </div>
+
+  <div class="card hide" id="keyMini">
+    <div class="row" style="align-items:center">
+      <span style="font-size:14px;color:var(--dim)">Nyckel sparad</span>
+      <button class="ghost" id="changeKey" style="max-width:150px">Byt nyckel</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>1. Din video</label>
+    <div class="drop" id="drop">Tryck for att valja video, eller dra hit en fil<br /><span class="tiny">mp4 eller mov, helst under 15 sekunder</span></div>
+    <input id="file" type="file" accept="video/*" class="hide" />
+    <video id="src" controls playsinline class="hide"></video>
+    <div id="fileInfo" class="tiny"></div>
+  </div>
+
+  <div class="card">
+    <label for="prompt">2. Beskriv vad AI:n ska gora</label>
+    <textarea id="prompt" placeholder="T.ex: byt ut min trojja mot en svart lader jacka och gor bakgrunden till en regnig gata pa natten"></textarea>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="card">
+    <label>3. Motor och upplosning</label>
+    <div class="row">
+      <select id="model">
+        <option value="lucy">Lucy Edit Pro - snabb, behaller ansikte och detaljer</option>
+        <option value="vace">Wan VACE - storre omgorningar, byt hela scener</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <select id="res">
+        <option value="480p">480p - billigast</option>
+        <option value="720p" selected>720p - standard</option>
+      </select>
+    </div>
+    <button id="go" style="margin-top:14px">Gor om videon</button>
+    <div class="bar" id="bar"><i></i></div>
+    <div class="status" id="status"></div>
+    <div class="log hide" id="log"></div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="card hide" id="outCard">
+    <label>Resultat</label>
+    <video id="out" controls playsinline></video>
+    <div class="row" style="margin-top:12px">
+      <button id="dl">Ladda ner</button>
+      <button class="ghost" id="again">Kor igen med samma video</button>
+    </div>
+  </div>
+
+  <div class="card hide" id="histCard">
+    <label>Tidigare (senaste 10)</label>
+    <div class="hist" id="hist"></div>
+  </div>
+</div>
+
+<script type="module">
+const $ = (id) => document.getElementById(id);
+const KEY = 'falKey';
+const HIST = 'aiVideoHist';
+const MODELS = {
+  lucy: { id: 'decart/lucy-edit/pro', build: (p, url, res) => ({ prompt: p, video_url: url, resolution: res, sync_mode: false }) },
+  vace: { id: 'fal-ai/wan-vace-apps/video-edit', build: (p, url, res) => ({ prompt: p, video_url: url, resolution: res, acceleration: 'regular', enable_auto_downsample: true }) }
+};
+const PRESETS = [
+  'gor det till anime-stil',
+  'byt bakgrunden till en regnig gata pa natten',
+  'byt min trojja mot en svart lader jacka',
+  'gor det till cinematisk film med varma farger',
+  'lagg till snofall i hela scenen',
+  'gor om det till 3D-animation i Pixar-stil',
+  'byt ut mig mot en rymdvasen i rymddrakt',
+  'gor det svartvitt som en gammal 80-talsfilm'
+];
+
+let file = null, busy = false, lastUrl = null, outUrl = null;
+
+function key() { return localStorage.getItem(KEY) || ''; }
+function paintKey() {
+  const has = !!key();
+  $('keyCard').classList.toggle('hide', has);
+  $('keyMini').classList.toggle('hide', !has);
+}
+$('saveKey').onclick = () => {
+  const v = $('key').value.trim();
+  if (!v) return;
+  localStorage.setItem(KEY, v);
+  $('key').value = '';
+  paintKey();
+};
+$('changeKey').onclick = () => { localStorage.removeItem(KEY); paintKey(); };
+
+PRESETS.forEach((p) => {
+  const b = document.createElement('button');
+  b.className = 'chip';
+  b.textContent = p;
+  b.onclick = () => {
+    const t = $('prompt');
+    t.value = t.value.trim() ? t.value.trim() + ', ' + p : p;
+    t.focus();
+  };
+  $('chips').appendChild(b);
+});
+
+$('drop').onclick = () => $('file').click();
+$('drop').ondragover = (e) => { e.preventDefault(); $('drop').classList.add('on'); };
+$('drop').ondragleave = () => $('drop').classList.remove('on');
+$('drop').ondrop = (e) => { e.preventDefault(); $('drop').classList.remove('on'); if (e.dataTransfer.files[0]) pick(e.dataTransfer.files[0]); };
+$('file').onchange = (e) => { if (e.target.files[0]) pick(e.target.files[0]); };
+
+function pick(f) {
+  file = f; lastUrl = null;
+  const v = $('src');
+  v.src = URL.createObjectURL(f);
+  v.classList.remove('hide');
+  const mb = (f.size / 1048576).toFixed(1);
+  $('fileInfo').textContent = f.name + ' - ' + mb + ' MB';
+  if (f.size > 90 * 1048576) $('fileInfo').textContent += ' (stor fil, klipp ner den om det strular)';
+}
+
+function setStatus(t) { $('status').textContent = t; }
+function setErr(t) { $('err').textContent = t || ''; }
+function working(on) {
+  busy = on;
+  $('go').disabled = on;
+  $('bar').style.display = on ? 'block' : 'none';
+  $('go').textContent = on ? 'Jobbar...' : 'Gor om videon';
+}
+
+async function toDataUri(f) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(f);
+  });
+}
+
+async function uploadVideo(f) {
+  setStatus('Laddar upp videon...');
+  try {
+    const mod = await import('https://esm.sh/@fal-ai/client@1.10.1');
+    mod.fal.config({ credentials: key() });
+    const url = await mod.fal.storage.upload(f);
+    if (url) return url;
+  } catch (e) {
+    console.warn('storage upload failed, faller tillbaka pa base64', e);
+  }
+  if (f.size > 60 * 1048576) throw new Error('Filen ar for stor for reservmetoden. Klipp ner videon till under 60 MB och prova igen.');
+  setStatus('Laddar upp videon (reservmetod)...');
+  return await toDataUri(f);
+}
+
+async function run() {
+  if (busy) return;
+  setErr('');
+  if (!key()) { setErr('Lagg in din fal.ai-nyckel forst.'); return; }
+  if (!file && !lastUrl) { setErr('Valj en video forst.'); return; }
+  const prompt = $('prompt').value.trim();
+  if (!prompt) { setErr('Skriv vad du vill att AI:n ska gora.'); return; }
+
+  const m = MODELS[$('model').value];
+  working(true);
+  $('log').classList.add('hide');
+  $('log').textContent = '';
+
+  try {
+    if (!lastUrl) lastUrl = await uploadVideo(file);
+    setStatus('Skickar till AI:n...');
+    const input = m.build(prompt, lastUrl, $('res').value);
+    const sub = await fetch('https://queue.fal.run/' + m.id, {
+      method: 'POST',
+      headers: { 'Authorization': 'Key ' + key(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input)
+    });
+    const subJson = await sub.json();
+    if (!sub.ok) throw new Error(pretty(subJson, sub.status));
+
+    const statusUrl = subJson.status_url;
+    const respUrl = subJson.response_url;
+    const t0 = Date.now();
+    let done = false;
+
+    while (!done) {
+      await sleep(3000);
+      const st = await fetch(statusUrl + '?logs=1', { headers: { 'Authorization': 'Key ' + key() } });
+      const sj = await st.json();
+      if (!st.ok) throw new Error(pretty(sj, st.status));
+      const secs = Math.round((Date.now() - t0) / 1000);
+      if (sj.status === 'IN_QUEUE') setStatus('I ko, plats ' + (sj.queue_position ?? '?') + ' - ' + secs + 's');
+      else if (sj.status === 'IN_PROGRESS') setStatus('AI:n jobbar pa videon - ' + secs + 's');
+      else if (sj.status === 'COMPLETED') { done = true; setStatus('Klart pa ' + secs + 's, hamtar videon...'); }
+      if (sj.logs && sj.logs.length) {
+        $('log').classList.remove('hide');
+        $('log').textContent = sj.logs.map((l) => l.message).join('\n');
+        $('log').scrollTop = $('log').scrollHeight;
+      }
+    }
+
+    const rs = await fetch(respUrl, { headers: { 'Authorization': 'Key ' + key() } });
+    const rj = await rs.json();
+    if (!rs.ok) throw new Error(pretty(rj, rs.status));
+    const url = rj.video?.url || rj.videos?.[0]?.url;
+    if (!url) throw new Error('Inget videosvar kom tillbaka: ' + JSON.stringify(rj).slice(0, 300));
+
+    outUrl = url;
+    $('out').src = url;
+    $('outCard').classList.remove('hide');
+    $('outCard').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setStatus('Klar.');
+    saveHist({ ts: Date.now(), prompt, model: $('model').value, url });
+  } catch (e) {
+    setStatus('');
+    setErr('Det gick fel: ' + (e.message || e));
+  } finally {
+    working(false);
+  }
+}
+
+function pretty(j, code) {
+  if (j && j.detail) return typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail);
+  if (code === 401 || code === 403) return 'Nyckeln godtogs inte (' + code + '). Kolla din fal.ai-nyckel.';
+  if (code === 402) return 'Slut pa krediter pa fal.ai-kontot.';
+  return 'HTTP ' + code + ' ' + JSON.stringify(j).slice(0, 300);
+}
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+$('go').onclick = run;
+$('again').onclick = () => { $('prompt').focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+$('dl').onclick = async () => {
+  if (!outUrl) return;
+  try {
+    const r = await fetch(outUrl);
+    const b = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = 'ai-video-' + Date.now() + '.mp4';
+    a.click();
+  } catch (e) { window.open(outUrl, '_blank'); }
+};
+
+function saveHist(item) {
+  const list = JSON.parse(localStorage.getItem(HIST) || '[]');
+  list.unshift(item);
+  localStorage.setItem(HIST, JSON.stringify(list.slice(0, 10)));
+  paintHist();
+}
+function paintHist() {
+  const list = JSON.parse(localStorage.getItem(HIST) || '[]');
+  $('histCard').classList.toggle('hide', !list.length);
+  $('hist').innerHTML = '';
+  list.forEach((it) => {
+    const d = document.createElement('div');
+    d.className = 'hitem';
+    const when = new Date(it.ts).toLocaleString('sv-SE');
+    d.innerHTML = '<div class="p">' + when + '</div>' + escapeHtml(it.prompt) + '<br /><a href="' + it.url + '" target="_blank" rel="noopener">Oppna videon</a>';
+    $('hist').appendChild(d);
+  });
+}
+function escapeHtml(s) { return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+paintKey();
+paintHist();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
