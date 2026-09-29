@@ -43,6 +43,9 @@
   a{color:var(--acc2)}
   .tiny{font-size:12px;color:#6f7791;margin-top:10px}
   .hide{display:none}
+  iframe{width:100%;height:1400px;border:0;border-radius:12px;background:#000}
+  .tab{font-size:14px;padding:11px 10px}
+  .tab.off{opacity:.5}
 </style>
 </head>
 <body>
@@ -50,6 +53,22 @@
   <h1>AI Video Studio</h1>
   <p class="sub">Ladda upp en video, beskriv vad du vill ha andrat, sa gor AI:n om den.</p>
 
+  <div class="card">
+    <div class="row">
+      <button class="ghost tab" id="tabFree">Gratis-lage</button>
+      <button class="ghost tab" id="tabPay">Egen nyckel (snabbare)</button>
+    </div>
+  </div>
+
+  <div id="freeWrap">
+    <div class="card">
+      <label>Gratis AI-studio</label>
+      <iframe id="hfFrame" src="https://fffiloni-wan2-1-vace-1-3b.hf.space" allow="autoplay; camera; microphone; clipboard-write" loading="lazy"></iframe>
+      <p class="tiny">Gratis demo av Wan VACE, samma modell som i betallaget. Det ar free sa det blir ko och en daglig kvot: skapa ett gratiskonto pa <a href="https://huggingface.co/join" target="_blank" rel="noopener">huggingface.co/join</a> och logga in inne i demot sa far du mer kvot. Kort video + enkel beskrivning = snabbast resultat.</p>
+    </div>
+  </div>
+
+  <div id="payWrap" class="hide">
   <div class="card" id="keyCard">
     <label for="key">fal.ai API-nyckel</label>
     <input id="key" type="password" placeholder="Klistra in din nyckel" autocomplete="off" />
@@ -114,11 +133,13 @@
     <label>Tidigare (senaste 10)</label>
     <div class="hist" id="hist"></div>
   </div>
+  </div>
 </div>
 
 <script type="module">
 const $ = (id) => document.getElementById(id);
 const KEY = 'falKey';
+const MODE = 'aiMode';
 const HIST = 'aiVideoHist';
 const MODELS = {
   lucy: { id: 'decart/lucy-edit/pro', build: (p, url, res) => ({ prompt: p, video_url: url, resolution: res, sync_mode: false }) },
@@ -151,6 +172,17 @@ $('saveKey').onclick = () => {
   paintKey();
 };
 $('changeKey').onclick = () => { localStorage.removeItem(KEY); paintKey(); };
+
+function setMode(m) {
+  localStorage.setItem(MODE, m);
+  const free = m === 'free';
+  $('freeWrap').classList.toggle('hide', !free);
+  $('payWrap').classList.toggle('hide', free);
+  $('tabFree').classList.toggle('off', !free);
+  $('tabPay').classList.toggle('off', free);
+}
+$('tabFree').onclick = () => setMode('free');
+$('tabPay').onclick = () => setMode('pay');
 
 PRESETS.forEach((p) => {
   const b = document.createElement('button');
@@ -323,6 +355,7 @@ function escapeHtml(s) { return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<
 
 paintKey();
 paintHist();
+setMode(localStorage.getItem(MODE) || 'free');
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
