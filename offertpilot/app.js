@@ -29,7 +29,8 @@ function route(){
   var h=location.hash||'#/';navLinks();
   var authMode=h.indexOf('#/signup')===0?'up':h.indexOf('#/login')===0?'in':h.indexOf('#/reset')===0?'reset':null;
   if(!OP_USER){
-    appEl().hidden=true;landingEl().hidden=!!authMode;window.scrollTo(0,0);
+    appEl().hidden=!authMode;landingEl().hidden=!!authMode;window.scrollTo(0,0);
+    document.querySelector('.topbar').style.display=authMode?'none':'';
     if(authMode)renderAuth(authMode);
     return;
   }
