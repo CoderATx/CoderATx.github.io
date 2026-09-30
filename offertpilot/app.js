@@ -27,7 +27,12 @@ document.getElementById('menu-btn').onclick=function(){document.getElementById('
 
 function route(){
   var h=location.hash||'#/';navLinks();
-  if(!OP_USER){appEl().hidden=true;landingEl().hidden=false;window.scrollTo(0,0);return;}
+  var authMode=h.indexOf('#/signup')===0?'up':h.indexOf('#/login')===0?'in':h.indexOf('#/reset')===0?'reset':null;
+  if(!OP_USER){
+    appEl().hidden=true;landingEl().hidden=!!authMode;window.scrollTo(0,0);
+    if(authMode)renderAuth(authMode);
+    return;
+  }
   landingEl().hidden=true;appEl().hidden=false;
   if(OP_PROFILE&&!OP_PROFILE.onboarding_done){renderOnboarding();return;}
   if(h.indexOf('#/dashboard')===0||h==='#/'||h==='#')renderDashboard();
