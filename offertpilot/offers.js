@@ -1,4 +1,4 @@
-/* OffertPilot — offertbyggaren, PDF, AI, admin */
+/* OffertPilot — konto, router, dashboard, onboarding, inställningar */
 'use strict';
 
 function openOffer(id){
@@ -114,11 +114,7 @@ function renderOfferEditor(o){
     });
   }
   document.getElementById('of-save').onclick=function(){save();};
-  document.getElementById('of-status').onchange=function(){
-    if(isNew)return;
-    if(this.value==='accepterad'&&o.status!=='accepterad'){confetti(80);toast('Grattis! Jobbet är ditt 🎉');}
-    save();
-  };
+  document.getElementById('of-status').onchange=function(){if(!isNew)save();};
   if(document.getElementById('of-del'))document.getElementById('of-del').onclick=function(){
     if(!confirm('Radera offert #'+o.number+'? Det går inte att ångra.'))return;
     sb.from('op_offers').delete().eq('id',o.id).then(function(){
