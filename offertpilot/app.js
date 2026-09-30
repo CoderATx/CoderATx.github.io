@@ -1,7 +1,7 @@
 /* OffertPilot — konto, router, dashboard, onboarding, inställningar */
 'use strict';
-var SB_URL='https://uxeaxqzovrtnqaialzsk.supabase.co';
-var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4ZWF4cXpvdnJ0bnFhaWFsenNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MDUwNzEsImV4cCI6MjA5NzQ4MTA3MX0.Xm9hj1ZiH10sjBiYuh-Fzm5lIsqcGLxC9NbynyySbNY';
+var SB_URL='https://erpeczvaslduhsvboqbt.supabase.co';
+var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGVjenZhc2xkdWhzdmJvcWJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NzI0MDAsImV4cCI6MjEwNjM0ODQwMH0.3UI9923X_IdmQKMJ0LcXwISXJF969MhQWh0IshdB9qA';
 var sb=window.supabase.createClient(SB_URL,SB_KEY);
 var OP_USER=null, OP_PROFILE=null, OP_OFFERS=null, OP_EMAIL='';
 
