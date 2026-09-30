@@ -1,5 +1,5 @@
-const CACHE='forward-v9';
-const ASSETS=['./','./index.html','./manifest.json','./icon.svg'];
+const CACHE='forward-v10';
+const ASSETS=['./','./index.html','./manifest.json','./icon.svg','./locked.js'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).catch(()=>{}));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener('fetch',e=>{
