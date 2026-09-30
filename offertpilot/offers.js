@@ -29,7 +29,7 @@ function renderOfferEditor(o){
     '<div class="viewhead"><h1>'+(isNew?'Ny offert':'Offert #'+o.number)+'</h1>'+
     '<div style="margin-left:auto" class="row">'+
     '<select id="of-status" style="width:150px">'+['utkast','skickad','accepterad','avslagen'].map(function(s){return '<option'+(o.status===s?' selected':'')+'>'+s+'</option>';}).join('')+'</select>'+
-    (isNew?'':'<button class="btn danger" id="of-del">Radera</button>')+'</div></div>'+
+    (isNew?'':'<button class="btn ghost" id="of-dup">Duplicera</button><button class="btn danger" id="of-del">Radera</button>')+'</div></div>'+
     '<div class="card"><div class="row"><div class="field grow"><label>Kund *</label><input id="of-name" value="'+esc(o.customer_name)+'" placeholder="Kundens namn eller firma"></div>'+
     '<div class="field grow"><label>Kontakt (mejl eller telefon)</label><input id="of-ct" value="'+esc(o.customer_contact)+'"></div></div>'+
     '<div class="row"><div class="field" style="width:130px"><label>Moms (%)</label><select id="of-vat">'+[25,12,6,0].map(function(v){return '<option value="'+v+'"'+(Number(o.vat)===v?' selected':'')+'>'+v+'</option>';}).join('')+'</select></div>'+
@@ -103,7 +103,7 @@ function renderOfferEditor(o){
         OP_OFFERS=null;return created;
       });
     }
-    return sb.from('op_offers').update(c).eq('id',o.id).then(function(r){
+    return sb.from('op_offers').update(Object.assign({updated_at:new Date().toISOString()},c)).eq('id',o.id).then(function(r){
       if(r.error){toast('Kunde inte spara: '+r.error.message,true);return null;}
       Object.assign(o,c);refreshCache(o);toast('Sparat.');return o;
     });
@@ -119,6 +119,22 @@ function renderOfferEditor(o){
     if(!confirm('Radera offert #'+o.number+'? Det går inte att ångra.'))return;
     sb.from('op_offers').delete().eq('id',o.id).then(function(){
       OP_OFFERS=null;toast('Raderad.');location.hash='#/dashboard';
+    });
+  };
+  if(document.getElementById('of-dup'))document.getElementById('of-dup').onclick=function(){
+    var c=collect();
+    if(!c.customer_name||!c.items.length)return toast('Kund och minst en post krävs.',true);
+    var copy=Object.assign({},c,{status:'utkast'});
+    sb.from('op_offers').insert(copy).select().then(function(r){
+      if(r.error)return toast('Kunde inte duplicera: '+r.error.message,true);
+      var created=r.data[0];
+      sb.from('op_offers').select('number').order('number',{ascending:false}).limit(1).then(function(mx){
+        var num=(mx.data&&mx.data[0]?mx.data[0].number:0)+1;
+        sb.from('op_offers').update({number:num,updated_at:new Date().toISOString()}).eq('id',created.id).then(function(){
+          created.number=num;refreshCache(created);logEv('offer_created');
+          toast('Kopia sparad som offert #'+num+'.');location.hash='#/offer/'+created.id;
+        });
+      });
     });
   };
   document.getElementById('of-pdf').onclick=function(){
@@ -222,7 +238,8 @@ function exportPdf(meta,c){
 /* ---------- Admin ---------- */
 function renderAdmin(){
   if(!OP_PROFILE||!OP_PROFILE.is_admin){
-    root().innerHTML='<h1>Admin</h1><div class="empty" style="max-width:520px;margin-top:18px">Du har inte adminrättigheter.</div>';return;
+    root().innerHTML='<h1>Admin</h1><div class="empty" style="max-width:520px;margin-top:18px">Du har inte adminrättigheter.</div>';
+    return;
   }
   root().innerHTML='<h1>Admin</h1><div class="skel" style="width:40%"></div><div class="skel"></div><div class="skel"></div>';
   Promise.all([

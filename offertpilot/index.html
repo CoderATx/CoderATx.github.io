@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OffertPilot — Proffsiga offerter på två minuter</title>
 <meta name="description" content="OffertPilot skriver proffsiga offerter för hantverkare, direkt från mobilen. Offert på två minuter, med ROT-avdrag och statusspårning.">
+<meta name="theme-color" content="#5a5fe0">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -194,7 +198,7 @@ table.list tr.click:hover{background:#fafafd}
       <h2>Så fungerar det</h2>
       <div class="steps">
         <div class="card"><span class="n">1</span><div><b>Skapa konto och lägg in din firma</b><p class="mut">Namn och telefon räcker, du är igång på under en minut.</p></div></div>
-        <div class="card"><span class="n">2</span><div><b>Bygg offerten direkt på jobbet</b><p class="mut">Lägg till poster, lås AI:n föreslå dem, eller skriv själv. ROT och moms räknas åt dig.</p></div></div>
+        <div class="card"><span class="n">2</span><div><b>Bygg offerten direkt på jobbet</b><p class="mut">Lägg till poster, låt AI:n föreslå dem, eller skriv själv. ROT och moms räknas åt dig.</p></div></div>
         <div class="card"><span class="n">3</span><div><b>Skicka och följ upp</b><p class="mut">Ladda ner PDF:n eller mejla den direkt. Statusen uppdaterar du med ett tryck när kunden svarar.</p></div></div>
       </div>
     </section>
@@ -237,7 +241,8 @@ table.list tr.click:hover{background:#fafafd}
 <div id="toasts"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=2"></script>
-<script src="offers.js?v=1"></script>
+<script src="app.js?v=3"></script>
+<script src="offers.js?v=2"></script>
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");</script>
 </body>
 </html>
