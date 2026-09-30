@@ -1,6 +1,7 @@
 /* FORWARD - Konto: valfri inloggning (Supabase) + molnsynk */
 (function(){
   var SB_URL = 'https://uxeaxqzovrtnqaialzsk.supabase.co';
+  var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4ZWF4cXpvdnJ0bnFhaWFsenNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MDUwNzEsImV4cCI6MjA5NzQ4MTA3MX0.Xm9hj1ZiH10sjBiYuh-Fzm5lIsqcGLxC9NbynyySbNY';
   var KEY_STORE = 'forward_sb_key';
   var SBJS = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
 
@@ -10,7 +11,6 @@
   function esc2(s){ return typeof esc === 'function' ? esc(s) : String(s == null ? '' : s); }
   function val(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
   function setStatus(t){ var el = document.getElementById('acct-status'); if (el) el.textContent = t; }
-  function needKey(){ toast('Klistra in din Supabase anon-nyckel först.'); }
   function syncFail(){
     if (Date.now() - lastErr < 30000) return;
     lastErr = Date.now();
@@ -25,7 +25,7 @@
   }
 
   function init(){
-    var key = getKey();
+    var key = getKey() || SB_KEY;
     if (!key || !window.supabase) return false;
     try { sb = window.supabase.createClient(SB_URL, key); return true; }
     catch(e){ return false; }
@@ -99,7 +99,7 @@
   }
 
   function signUp(){
-    if (!sb) return needKey();
+    if (!sb) return syncFail();
     var em = val('acct-email'), pw = val('acct-pass');
     if (!em || pw.length < 6) return toast('Fyll i e-post och ett lösenord (minst 6 tecken).');
     sb.auth.signUp({email: em, password: pw}).then(function(res){
@@ -109,7 +109,7 @@
     });
   }
   function signIn(){
-    if (!sb) return needKey();
+    if (!sb) return syncFail();
     var em = val('acct-email'), pw = val('acct-pass');
     if (!em || !pw) return toast('Fyll i e-post och lösenord.');
     sb.auth.signInWithPassword({email: em, password: pw}).then(function(res){
@@ -138,9 +138,6 @@
     card.innerHTML =
       '<h3>Konto &amp; synk (valfritt)</h3>' +
       '<div class="label" id="acct-status" style="margin-bottom:12px;"></div>' +
-      '<div class="fieldrow"><div class="field" style="flex:2;min-width:180px;"><label>Supabase anon-nyckel</label>' +
-        '<input id="acct-key" placeholder="klistra in nyckeln här"></div>' +
-        '<div style="align-self:flex-end;"><button class="btn ghost" id="acct-key-save">Spara nyckel</button></div></div>' +
       '<div class="fieldrow"><div class="field" style="flex:2;min-width:180px;"><label>E-post</label><input id="acct-email" type="email" autocomplete="username"></div>' +
         '<div class="field" style="min-width:130px;"><label>Lösenord</label><input id="acct-pass" type="password" autocomplete="current-password"></div></div>' +
       '<div class="row" style="flex-wrap:wrap;gap:10px;">' +
@@ -150,14 +147,6 @@
       '</div>' +
       '<div class="label" style="margin-top:12px;">Utan konto fungerar allt som vanligt och datan sparas bara på den här enheten. Med konto synkas träning, mat och mål automatiskt mellan dina enheter.</div>';
     grid.appendChild(card);
-    card.querySelector('#acct-key').value = getKey();
-    card.querySelector('#acct-key-save').onclick = function(){
-      localStorage.setItem(KEY_STORE, card.querySelector('#acct-key').value.trim());
-      sb = null; currentUser = null;
-      if (init()){ restoreSession(true); if (typeof toast === 'function') toast('Nyckel sparad ✓'); }
-      else if (typeof toast === 'function') toast('Nyckeln kunde inte användas.');
-      updateCard();
-    };
     card.querySelector('#acct-in').onclick = signIn;
     card.querySelector('#acct-up').onclick = signUp;
     card.querySelector('#acct-out').onclick = signOutNow;
@@ -172,11 +161,7 @@
     card.querySelector('#acct-out').style.display = loggedIn ? '' : 'none';
     card.querySelector('#acct-email').style.display = loggedIn ? 'none' : '';
     card.querySelector('#acct-pass').style.display = loggedIn ? 'none' : '';
-    setStatus(loggedIn
-      ? 'Inloggad. Träning, mat och mål synkas automatiskt.'
-      : (getKey()
-        ? 'Ej inloggad. Skapa ett konto eller logga in nedan.'
-        : 'Klistra in din Supabase anon-nyckel först (Supabase, Project Settings, API, anon public).'));
+    setStatus(loggedIn ? 'Inloggad. Träning, mat och mål synkas automatiskt.' : 'Ej inloggad. Skapa ett konto eller logga in nedan.');
   }
 
   function restoreSession(silent){
@@ -195,10 +180,8 @@
   }
   ensureCard();
 
-  /* Starta: ladda Supabase-klienten om nyckel finns, återställ session */
-  if (getKey()){
-    loadScript(SBJS).then(function(){
-      if (init()) restoreSession(true);
-    }).catch(function(){});
-  }
+  /* Starta: ladda Supabase-klienten, återställ eventuell session */
+  loadScript(SBJS).then(function(){
+    if (init()) restoreSession(true);
+  }).catch(function(){});
 })();
