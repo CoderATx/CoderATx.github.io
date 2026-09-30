@@ -337,76 +337,9 @@ input[type=range]:focus{box-shadow:none;}
 <button id="install-app" class="btn" style="display:none;position:fixed;right:18px;bottom:88px;z-index:50;border-radius:999px;box-shadow:var(--shadow);">＋ Lägg till FORWARD</button>
 <button class="fab" onclick="document.getElementById('fab-menu').classList.toggle('open')">+</button>
 
-<script>
-const NAV=[
-  {id:'dashboard',label:'Dashboard',icon:'M3 12l9-9 9 9M5 10v10h14V10'},
-  {id:'coach',label:'AI Coach',icon:'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z'},
-  {id:'journey',label:'Min resa',icon:'M3 12h4l3-9 4 18 3-9h4'},
-  {id:'training',label:'Träning',icon:'M6 6l12 12M18 6L6 18'},
-  {id:'schema',label:'Gym schema',icon:'M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z'},
-  {id:'goals',label:'Mål',icon:'M12 2v20M2 12h20'},
-  {id:'habits',label:'Habits',icon:'M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11'},
-  {id:'program',label:'Program',icon:'M4 6h16M4 12h16M4 18h10'},
-  {id:'body',label:'Kropp',icon:'M12 3v18M5 8l7-5 7 5'},
-  {id:'dreams',label:'Drömmar',icon:'M12 21s-8-5-8-11a8 8 0 0116 0c0 6-8 11-8 11z'},
-  {id:'journal',label:'Journal',icon:'M4 4h16v16H4z'},
-  {id:'gallery',label:'Galleri',icon:'M3 3h18v18H3zM3 15l5-5 4 4 5-5 4 4'},
-  {id:'stats',label:'Statistik',icon:'M4 20V10M12 20V4M20 20v-7'},
-];
-function icon(d){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;}
-document.getElementById('navlinks').innerHTML = NAV.map(n=>`<button class="navlink" data-view="${n.id}">${icon(n.icon)}${n.label}</button>`).join('');
-document.getElementById('bottomnav').innerHTML = NAV.map(n=>`<button class="navlink" data-view="${n.id}">${icon(n.icon)}${n.label}</button>`).join('') + `<button class="navlink" data-view="settings">${icon('M12 15a3 3 0 100-6 3 3 0 000 6z')}Inst.</button>`;
-
-// ---------- Data ----------
-const DB_KEY='forward_app_data_v1';
-function loadDB(){
-  try{ const d=JSON.parse(localStorage.getItem(DB_KEY)) || {}; return {workouts:[],trainingDays:[],goals:[],dreams:[],journal:[],photos:[],records:[],habits:[],body:[],programs:[],theme:'dark',...d}; }
-  catch(e){ return {workouts:[],trainingDays:[],goals:[],dreams:[],journal:[],photos:[],records:[],habits:[],body:[],programs:[],theme:'dark'}; }
-}
-let db = loadDB();
-let saveTimer=null;
-function save(){
-  try{
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-    localStorage.setItem(DB_KEY+'_saved_at', new Date().toISOString());
-  }catch(e){
-    console.error('Storage error',e);
-    toast('Kunde inte spara automatiskt — lagringsutrymmet kan vara fullt.');
-  }
-}
-function autoSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(save,120); }
-window.addEventListener('beforeunload',save);
-window.addEventListener('pagehide',save);
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') save(); });
-setInterval(save,30000);
-function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function fmtDate(d){ return new Date(d).toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'}); }
-function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function todayStr(d){ d=d||new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function quickAdd(view,panel){ setView(view); togglePanel(panel); }
-function readImageCompressed(file, cb){
-  const r=new FileReader();
-  r.onload=()=>{
-    const img=new Image();
-    img.onload=()=>{
-      const MAX=1200; let w=img.width,h=img.height;
-      if(w>MAX||h>MAX){ const k=MAX/Math.max(w,h); w=Math.round(w*k); h=Math.round(h*k); }
-      const c=document.createElement('canvas'); c.width=w; c.height=h;
-      c.getContext('2d').drawImage(img,0,0,w,h);
-      cb(c.toDataURL('image/jpeg',0.82));
-    };
-    img.onerror=()=>cb(r.result);
-    img.src=r.result;
-  };
-  r.readAsDataURL(file);
-}
-
-// ---------- Nav ----------
-function setView(id){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+id).classList.add('active');
-  document.querySelectorAll('.navlink').forEach(b=>b.classList.toggle('active', b.dataset.view===id));
-  renderAll();
-  window.scrollTo(0,0);
-}
-document.querySelectorAll('.navlink').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+<script src="app-a.js"></script>
+<script src="app-b.js"></script>
+<script src="app-c.js"></script>
+<script src="ios.js" defer></script>
+</body>
+</html>
