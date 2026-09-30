@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OffertPilot — Proffsiga offerter på två minuter</title>
+<meta name="description" content="OffertPilot skriver proffsiga offerter för hantverkare, direkt från mobilen. Offert på två minuter, med ROT-avdrag och statusspårning.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f7fb; --card:#ffffff; --line:#e7e7f0; --line2:#d8d8e6;
+  --text:#17171f; --muted:#5f5e6e; --label:#8b8a99;
+  --accent:#5a5fe0; --accent2:#3d43c9; --accent-dim:rgba(90,95,224,.08);
+  --good:#178a5b; --good-bg:#e5f6ee; --warn:#9a6b00; --warn-bg:#fdf3d8; --bad:#c2334d; --bad-bg:#fdeaee;
+  --radius:12px; --radius-l:18px; --shadow:0 1px 2px rgba(20,20,40,.05), 0 8px 24px rgba(20,20,40,.06);
+  --font:'Inter',system-ui,sans-serif; --fd:'Space Grotesk',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.55;font-size:15px;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+h1,h2,h3{font-family:var(--fd);letter-spacing:-.01em}
+button{font-family:inherit;font-size:.92rem;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:.95rem;color:var(--text);background:#fff;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;outline:none;transition:border-color .15s,box-shadow .15s;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+label{display:block;font-size:.74rem;font-weight:600;color:var(--label);text-transform:uppercase;letter-spacing:.05em;margin:0 0 5px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-weight:600;transition:background .15s,transform .1s}
+.btn:hover{background:var(--accent2)}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:#fff;color:var(--text);border:1px solid var(--line2)}
+.btn.ghost:hover{background:#f1f1f7}
+.btn.danger{background:#fff;color:var(--bad);border:1px solid #f0c6cf}
+.btn.danger:hover{background:var(--bad-bg)}
+.btn.big{padding:14px 26px;font-size:1rem}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-l);padding:24px;box-shadow:var(--shadow)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:140px}
+.mut{color:var(--muted)} .lab{color:var(--label);font-size:.8rem}
+.badge{display:inline-block;padding:3px 11px;border-radius:999px;font-size:.74rem;font-weight:600}
+.badge.utkast{background:#eeeeef;color:#5f5e6e}
+.badge.skickad{background:var(--warn-bg);color:var(--warn)}
+.badge.accepterad{background:var(--good-bg);color:var(--good)}
+.badge.avslagen{background:var(--bad-bg);color:var(--bad)}
+/* topbar */
+#app[hidden]{display:none}
+.topbar{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.85);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 22px;height:58px}
+.logo{font-family:var(--fd);font-weight:700;font-size:1.12rem;color:var(--text)}
+.logo span{color:var(--accent)}
+#topnav{display:flex;gap:2px;margin-left:14px;flex:1}
+#topnav a{padding:8px 13px;border-radius:9px;color:var(--muted);font-weight:500;font-size:.9rem}
+#topnav a:hover{background:var(--accent-dim);color:var(--text)}
+#topnav a.on{color:var(--accent);background:var(--accent-dim)}
+#menu-btn{display:none;margin-left:auto;background:none;border:1px solid var(--line2);border-radius:9px;padding:7px 11px}
+#mobnav{display:none;flex-direction:column;padding:8px 14px 14px;border-bottom:1px solid var(--line);background:#fff}
+#mobnav a{padding:11px 12px;border-radius:9px;color:var(--text);font-weight:500}
+#mobnav a.on{background:var(--accent-dim);color:var(--accent)}
+main#root{max-width:1060px;margin:0 auto;padding:30px 22px 90px}
+/* landing */
+.lwrap{max-width:1060px;margin:0 auto;padding:0 22px}
+.lnav{display:flex;align-items:center;gap:18px;padding:18px 0}
+.lnav a{color:var(--muted);font-weight:500;font-size:.92rem}
+.lnav .btn{margin-left:auto;padding:9px 16px;font-size:.88rem}
+.hero{padding:64px 0 30px;text-align:left}
+.hero .eyebrow{display:inline-block;background:var(--accent-dim);color:var(--accent);font-weight:600;font-size:.78rem;padding:5px 13px;border-radius:999px;margin-bottom:16px}
+.hero h1{font-size:clamp(2rem,4.6vw,3.1rem);line-height:1.12;max-width:640px}
+.hero p.sub{margin-top:16px;font-size:1.08rem;color:var(--muted);max-width:560px}
+.hero .row{margin-top:26px}
+.mock{margin:44px 0 0;border:1px solid var(--line);border-radius:var(--radius-l);background:#fff;box-shadow:var(--shadow);max-width:560px;padding:26px 28px}
+.mock .mh{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:12px}
+.mock .mh b{font-family:var(--fd);font-size:1.05rem}
+.mock .mi{display:flex;justify-content:space-between;font-size:.9rem;padding:7px 0;color:var(--muted)}
+.mock .mt{border-top:1px solid var(--line);margin-top:8px;padding-top:12px;display:flex;justify-content:space-between;font-weight:700}
+.lsec{padding:56px 0}
+.lsec h2{font-size:1.55rem;max-width:560px}
+.lsec .lead{color:var(--muted);margin-top:10px;max-width:560px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:26px}
+.fgrid .card h3{font-size:.98rem;margin-bottom:6px}
+.fgrid .card p{color:var(--muted);font-size:.9rem}
+.steps{counter-reset:st;margin-top:26px;display:grid;gap:12px}
+.steps .card{display:flex;gap:16px;align-items:flex-start}
+.steps .n{width:30px;height:30px;flex:none;border-radius:9px;background:var(--accent-dim);color:var(--accent);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:.9rem}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:26px}
+.pcard{position:relative}
+.pcard .pr{font-family:var(--fd);font-size:1.9rem;font-weight:700;margin:8px 0 2px}
+.pcard .pr small{font-size:.85rem;color:var(--label);font-weight:500}
+.pcard ul{list-style:none;margin:14px 0 18px}
+.pcard li{padding:5px 0;font-size:.9rem;color:var(--muted)}
+.pcard li::before{content:'✓';color:var(--good);margin-right:9px;font-weight:700}
+.pcard.hl{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow)}
+.pcard .tagp{position:absolute;top:-11px;left:22px;background:var(--accent);color:#fff;font-size:.7rem;font-weight:700;padding:3px 11px;border-radius:999px}
+.beta{margin-top:20px;background:var(--accent-dim);border:1px solid var(--line);border-radius:var(--radius);padding:14px 18px;font-size:.9rem;color:var(--muted)}
+.faq{max-width:680px}
+.faq details{border:1px solid var(--line);border-radius:var(--radius);background:#fff;margin-top:10px;padding:14px 18px}
+.faq summary{font-weight:600;cursor:pointer}
+.faq p{color:var(--muted);margin-top:8px;font-size:.92rem}
+.cta{background:var(--text);border-radius:var(--radius-l);color:#fff;padding:44px 36px;text-align:center;margin:30px 0 60px}
+.cta h2{color:#fff}
+.cta p{color:#b9b9c8;margin:10px 0 22px}
+footer.lfoot{border-top:1px solid var(--line);padding:22px;text-align:center;color:var(--label);font-size:.82rem}
+/* app bits */
+.viewhead{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+.viewhead h1{font-size:1.5rem}
+.statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:18px 0}
+.stat .v{font-family:var(--fd);font-size:1.55rem;font-weight:700}
+table.list{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+table.list th{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--label);text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);background:#fafafc}
+table.list td{padding:12px 14px;border-bottom:1px solid var(--line);font-size:.92rem}
+table.list tr:last-child td{border-bottom:none}
+table.list tr.click{cursor:pointer}
+table.list tr.click:hover{background:#fafafd}
+.tw{overflow-x:auto;border-radius:var(--radius)}
+.item{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-top:8px}
+.item .d{flex:3;min-width:180px}
+.item .q{width:70px} .item .u{width:90px} .item .p{width:110px}
+.item .x{width:36px;flex:none;height:42px}
+.totals{margin-top:18px;max-width:360px;margin-left:auto}
+.totals .t{display:flex;justify-content:space-between;padding:6px 0;font-size:.95rem}
+.totals .t.b{font-weight:700;font-size:1.1rem;border-top:1px solid var(--line2);margin-top:6px;padding-top:12px}
+.empty{text-align:center;padding:46px 20px;border:1px dashed var(--line2);border-radius:var(--radius-l);color:var(--muted);margin-top:18px}
+.ai{background:#f6f6ff;border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-top:14px}
+.ai textarea{min-height:70px;resize:vertical}
+.hint{font-size:.8rem;color:var(--label);margin-top:6px}
+.skel{height:14px;border-radius:6px;background:linear-gradient(90deg,#ececf3,#f6f6fa,#ececf3);background-size:200% 100%;animation:sk 1.2s linear infinite;margin:10px 0}
+@keyframes sk{to{background-position:-200% 0}}
+#toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:var(--text);color:#fff;padding:11px 20px;border-radius:10px;font-size:.9rem;font-weight:500;box-shadow:var(--shadow);animation:tin .2s ease}
+.toast.err{background:var(--bad)}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+.authwrap{max-width:420px;margin:40px auto}
+.authwrap .card{padding:28px}
+.authwrap h1{font-size:1.4rem;margin-bottom:4px}
+.tabs{display:flex;gap:6px;margin-bottom:18px}
+.tabs button{flex:1;padding:9px;border-radius:9px;border:1px solid var(--line2);background:#fff;color:var(--muted);font-weight:600}
+.tabs button.on{background:var(--accent-dim);color:var(--accent);border-color:var(--accent)}
+.onb{max-width:520px;margin:40px auto}
+.onb h1{font-size:1.5rem}
+.steplab{font-size:.8rem;color:var(--label);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.prices .pcard .btn{width:100%}
+.mini{font-size:.8rem}
+@media(max-width:820px){
+  #topnav{display:none}
+  #menu-btn{display:block}
+  #mobnav.open{display:flex}
+  main#root{padding:20px 14px 90px}
+  .hero{padding:34px 0 10px}
+  .lsec{padding:36px 0}
+  .totals{max-width:none}
+}
+</style>
+</head>
+<body>
+
+<div id="landing">
+  <div class="lwrap">
+    <div class="lnav">
+      <a class="logo" href="#/">Offert<span>Pilot</span></a>
+      <a href="#funktioner">Funktioner</a>
+      <a href="#priser">Priser</a>
+      <a href="#faq">FAQ</a>
+      <a class="btn" href="#/signup">Skapa konto</a>
+    </div>
+    <section class="hero">
+      <span class="eyebrow">För hantverkare och små firmor</span>
+      <h1>Proffsiga offerter på två minuter. Skrivna på jobbet, inte på kvällen.</h1>
+      <p class="sub">Kund, arbetsposter och priser in. Färdig PDF med ditt företags namn ut. Skicka direkt till kunden och se när offerten accepteras.</p>
+      <div class="row">
+        <a class="btn big" href="#/signup">Skapa konto gratis</a>
+        <a class="btn ghost big" href="#hur">Så funkar det</a>
+      </div>
+      <div class="mock" aria-hidden="true">
+        <div class="mh"><b>Offert #12</b><span class="lab">Måleri i Haninge AB</span></div>
+        <div class="mi"><span>Målning vardagsrum, 2 lager</span><span>4 800 kr</span></div>
+        <div class="mi"><span>Spackling och slipning</span><span>2 200 kr</span></div>
+        <div class="mi"><span>Material: täckplast, tejp</span><span>450 kr</span></div>
+        <div class="mt"><span>Totalt (efter ROT)</span><span>6 037 kr</span></div>
+      </div>
+    </section>
+    <section class="lsec" id="problem">
+      <h2>En offert som kommer två dagar sent är ett förlorat jobb.</h2>
+      <p class="lead">De flesta små firmor skriver offerter på kvällstid i Excel. Det tar timmar, blir sällan snyggt och följs aldrig upp. OffertPilot flyttar jobbet till telefonen, där du redan står.</p>
+    </section>
+    <section class="lsec" id="funktioner">
+      <h2>Byggt för en sak: att offerten blir klar och skickad.</h2>
+      <div class="fgrid">
+        <div class="card"><h3>Offert på två minuter</h3><p>Kund, poster och priser i en enkel lista. Moms och ROT-avdrag räknas rätt automatiskt, PDF:n ser proffsig ut med ditt firmanamn.</p></div>
+        <div class="card"><h3>AI fyller posterna</h3><p>Beskriv jobbet med några rader eller diktera. AI föreslår arbetsposter med rimliga priser, du justerar och skickar.</p></div>
+        <div class="card"><h3>Status på varje offert</h3><p>Se vilka offerter som är sedda, accepterade eller avslagna. Ditt dashboard visar värdet du fått i jobb denna månad.</p></div>
+      </div>
+    </section>
+    <section class="lsec" id="hur">
+      <h2>Så fungerar det</h2>
+      <div class="steps">
+        <div class="card"><span class="n">1</span><div><b>Skapa konto och lägg in din firma</b><p class="mut">Namn och telefon räcker, du är igång på under en minut.</p></div></div>
+        <div class="card"><span class="n">2</span><div><b>Bygg offerten direkt på jobbet</b><p class="mut">Lägg till poster, lås AI:n föreslå dem, eller skriv själv. ROT och moms räknas åt dig.</p></div></div>
+        <div class="card"><span class="n">3</span><div><b>Skicka och följ upp</b><p class="mut">Ladda ner PDF:n eller mejla den direkt. Statusen uppdaterar du med ett tryck när kunden svarar.</p></div></div>
+      </div>
+    </section>
+    <section class="lsec prices" id="priser">
+      <h2>Priser</h2>
+      <div class="pgrid">
+        <div class="card pcard"><h3>Free</h3><div class="pr">0 kr <small>/ månad</small></div><ul><li>3 offerter per månad</li><li>PDF och ROT-beräkning</li><li>Statusspårning</li></ul><a class="btn ghost" href="#/signup">Kom igång</a></div>
+        <div class="card pcard hl"><span class="tagp">Mest valda</span><h3>Pro</h3><div class="pr">149 kr <small>/ månad</small></div><ul><li>Obegränsat antal offerter</li><li>AI-poster och AI-texter</li><li>All statistik i dashboardet</li></ul><a class="btn" href="#/signup">Starta gratis</a></div>
+        <div class="card pcard"><h3>Business</h3><div class="pr">299 kr <small>/ månad</small></div><ul><li>Flera användare i firman</li><li>Gemensam kundlista</li><li>Firmaförinställningar</li></ul><a class="btn ghost" href="#/signup">Kom igång</a></div>
+      </div>
+      <div class="beta">Under betan är allt öppet och gratis, utan betalkort. Priset gäller från lanseringen, betalning kopplas in via Stripe.</div>
+    </section>
+    <section class="lsec" id="faq">
+      <h2>Vanliga frågor</h2>
+      <div class="faq">
+        <details><summary>Behöver jag lämna betalkort?</summary><p>Nej. Under betan skapar du konto med e-post och lösenord, inget mer.</p></details>
+        <details><summary>Räknas ROT-avdraget rätt?</summary><p>ROT dras med 30 procent på arbetskostnaden innan moms, enligt gällande procentsats. Du kan stänga av det per offert för jobb som inte ger avdrag.</p></details>
+        <details><summary>Kan jag använda min egen firmainfo på offerten?</summary><p>Ja, firmanamn, org.nummer och telefon läggs in i Inställningar och hamnar automatiskt på varje offert.</p></details>
+        <details><summary>Vad krävs för AI-funktionen?</summary><p>En gratis API-nyckel från Groq klistras in i Inställningar. Utan nyckeln fungerar allt annat, du skriver posterna själv.</p></details>
+      </div>
+    </section>
+    <section class="cta">
+      <h2>Skicka din första offert idag.</h2>
+      <p>Gratis konto, inget betalkort. Din första offert tar två minuter.</p>
+      <a class="btn big" href="#/signup" style="background:#fff;color:var(--text)">Skapa konto gratis</a>
+    </section>
+  </div>
+  <footer class="lfoot">OffertPilot, byggd i Sverige. Kontakt: offertpilot@wajo.ai</footer>
+</div>
+
+<div id="app" hidden>
+  <header class="topbar">
+    <a class="logo" href="#/dashboard">Offert<span>Pilot</span></a>
+    <nav id="topnav"></nav>
+    <button id="menu-btn" aria-label="Meny">☰</button>
+  </header>
+  <nav id="mobnav"></nav>
+  <main id="root"></main>
+</div>
+<div id="toasts"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script src="offers.js"></script>
+</body>
+</html>
