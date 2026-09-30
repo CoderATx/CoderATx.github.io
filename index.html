@@ -289,17 +289,17 @@ input[type=range]:focus{box-shadow:none;}
 .cal-d.today{box-shadow:0 0 0 2px var(--accent-dim); border-color:var(--accent2);}
 
 /* Animerad bakgrund */
-.bgfx{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;}
-.bgfx span{position:absolute;border-radius:50%;filter:blur(80px);opacity:.32;animation:drift 24s ease-in-out infinite alternate;}
-.bgfx .b1{width:46vmax;height:46vmax;left:-14vmax;top:-16vmax;background:radial-gradient(circle,rgba(124,131,255,.55),transparent 65%);}
-.bgfx .b2{width:40vmax;height:40vmax;right:-16vmax;top:22vh;background:radial-gradient(circle,rgba(79,209,255,.38),transparent 65%);animation-duration:30s;animation-delay:-9s;}
-.bgfx .b3{width:36vmax;height:36vmax;left:16vw;bottom:-18vmax;background:radial-gradient(circle,rgba(154,124,255,.45),transparent 65%);animation-duration:36s;animation-delay:-18s;}
+.bgfx{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+.bgfx span{position:absolute;border-radius:50%;filter:blur(60px);opacity:.55;animation:drift 24s ease-in-out infinite alternate;}
+.bgfx .b1{width:46vmax;height:46vmax;left:-14vmax;top:-16vmax;background:radial-gradient(circle,rgba(124,131,255,.7),transparent 68%);}
+.bgfx .b2{width:40vmax;height:40vmax;right:-16vmax;top:22vh;background:radial-gradient(circle,rgba(79,209,255,.5),transparent 68%);animation-duration:30s;animation-delay:-9s;}
+.bgfx .b3{width:36vmax;height:36vmax;left:16vw;bottom:-18vmax;background:radial-gradient(circle,rgba(154,124,255,.6),transparent 68%);animation-duration:36s;animation-delay:-18s;}
 @keyframes drift{
   0%{transform:translate(0,0) scale(1);}
   50%{transform:translate(6vmax,4vmax) scale(1.12);}
   100%{transform:translate(-4vmax,-5vmax) scale(.94);}
 }
-:root[data-theme="light"] .bgfx span{opacity:.18;}
+:root[data-theme="light"] .bgfx span{opacity:.28;}
 @media (prefers-reduced-motion: reduce){.bgfx span{animation:none;}}
 </style>
 
