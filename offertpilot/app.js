@@ -1,148 +1,145 @@
 /* OffertPilot — konto, router, dashboard, onboarding, inställningar */
 'use strict';
-var SB_URL='https://erpeczvaslduhsvboqbt.supabase.co';
-var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGVjenZhc2xkdWhzdmJvcWJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NzI0MDAsImV4cCI6MjEwNjM0ODQwMH0.3UI9923X_IdmQKMJ0LcXwISXJF969MhQWh0IshdB9qA';
-var sb=window.supabase.createClient(SB_URL,SB_KEY);
-var OP_USER=null, OP_PROFILE=null, OP_OFFERS=null, OP_EMAIL='';
+var SUPA_URL='https://erpeczvaslduhsvboqbt.supabase.co';
+var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVycGVjenZhc2xkdWhzdmJvcWJ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NzI0MDAsImV4cCI6MjEwNjM0ODQwMH0.3UI9923X_IdmQKMJ0LcXwISXJF969MhQWh0IshdB9qA';
+var sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+var OP_USER=null,OP_PROFILE=null,OP_OFFERS=null;
 
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function kr(n){return new Intl.NumberFormat('sv-SE',{maximumFractionDigits:0}).format(Math.round(n||0))+' kr';}
-function dstr(iso){try{return new Date(iso).toLocaleDateString('sv-SE');}catch(e){return '';}}
-function toast(msg,err){var w=document.getElementById('toasts');var t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;w.appendChild(t);setTimeout(function(){t.remove();},3200);}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function kr(n){return Number(n||0).toLocaleString('sv-SE',{minimumFractionDigits:0,maximumFractionDigits:0})+' kr';}
+function dstr(d){if(!d)return '';var x=new Date(d);return x.toLocaleDateString('sv-SE',{day:'numeric',month:'short',year:'numeric'});}
 function root(){return document.getElementById('root');}
-function landingEl(){return document.getElementById('landing');}
-function appEl(){return document.getElementById('app');}
-function logEv(ev,meta){if(!OP_USER)return;sb.from('op_events').insert({user_id:OP_USER,event:ev,meta:meta||{}}).then(function(){});}
-function groqKey(){try{return (localStorage.getItem('op_groq_key')||'').trim();}catch(e){return '';}}
-
-function navLinks(){
-  var links=[['#/dashboard','Dashboard'],['#/new','Ny offert'],['#/priser','Priser'],['#/installningar','Inställningar']];
-  if(OP_PROFILE&&OP_PROFILE.is_admin)links.push(['#/admin','Admin']);
-  var h=location.hash||'#/'
-  var nav=document.getElementById('topnav'),mob=document.getElementById('mobnav');
-  nav.innerHTML=links.map(function(l){return '<a href="'+l[0]+'" class="'+(h.indexOf(l[0])===0?'on':'')+'">'+l[1]+'</a>';}).join('');
-  mob.innerHTML=links.concat([['#/logout','Logga ut']]).map(function(l){return '<a href="'+l[0]+'" class="'+(h.indexOf(l[0])===0?'on':'')+'">'+l[1]+'</a>';}).join('');
+function toast(msg,err){
+  var t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(function(){t.remove();},3400);
 }
-document.getElementById('menu-btn').onclick=function(){document.getElementById('mobnav').classList.toggle('open');};
+function groqKey(){return localStorage.getItem('op_groq_key')||'';}
+function logEv(e){
+  if(!OP_USER)return;
+  sb.from('op_events').insert({event:e}).then(function(){},function(){});
+}
+function show(el,on){document.getElementById(el).hidden=!on;}
 
+/* ---------- auth ---------- */
+function showLanding(){show('landing',true);show('app',false);show('auth',false);}
+function showApp(){show('landing',false);show('app',true);show('auth',false);renderNav();}
+function showAuth(mode){
+  show('landing',false);show('app',false);show('auth',true);
+  setAuthMode(mode||'login');
+}
+function setAuthMode(mode){
+  var login=mode==='login';
+  document.getElementById('tab-login').classList.toggle('on',login);
+  document.getElementById('tab-signup').classList.toggle('on',!login);
+  document.getElementById('auth-h').textContent=login?'Välkommen tillbaka':'Skapa ditt konto';
+  document.getElementById('auth-go').textContent=login?'Logga in':'Skapa konto';
+  document.getElementById('auth-go').setAttribute('data-mode',mode);
+  document.getElementById('auth-msg').textContent='';
+}
+function authMsg(m,err){
+  var d=document.getElementById('auth-msg');
+  d.innerHTML='<p class="hint" style="color:'+(err?'var(--bad)':'var(--accent)')+';font-weight:600;margin-bottom:8px;">'+esc(m)+'</p>';
+}
+document.getElementById('tab-login').onclick=function(){setAuthMode('login');};
+document.getElementById('tab-signup').onclick=function(){setAuthMode('signup');};
+document.getElementById('menu-btn').onclick=function(){document.getElementById('mobnav').classList.toggle('open');};
+document.getElementById('auth-go').onclick=function(){
+  var mode=this.getAttribute('data-mode');
+  var em=document.getElementById('auth-em').value.trim();
+  var pw=document.getElementById('auth-pw').value;
+  if(!em||!pw){authMsg('Fyll i mejl och lösenord.',true);return;}
+  if(mode==='signup'){
+    sb.auth.signUp({email:em,password:pw}).then(function(r){
+      if(r.error){authMsg(r.error.message,true);return;}
+      logEv('signup');
+      afterLogin(r.data.user);
+    });
+  }else{
+    sb.auth.signInWithPassword({email:em,password:pw}).then(function(r){
+      if(r.error){authMsg(r.error.message,true);return;}
+      logEv('login');
+      afterLogin(r.data.user);
+    });
+  }
+};
+
+function afterLogin(user){
+  OP_USER=user?user.email:null;
+  if(!user){OP_PROFILE=null;OP_OFFERS=null;route();return;}
+  sb.from('op_profiles').select('*').eq('user_id',user.id).maybeSingle().then(function(r){
+    if(r.error){toast('Kunde inte läsa profilen: '+r.error.message,true);return;}
+    if(!r.data){
+      sb.from('op_profiles').insert({user_id:user.id,email:user.email||''}).then(function(ir){
+        OP_PROFILE=ir.data||{user_id:user.id,onboarding_done:false};
+        route();
+      });
+    }else{OP_PROFILE=r.data;route();}
+  });
+}
+
+/* ---------- router ---------- */
+var NAV=[
+  {id:'dashboard',label:'Dashboard',hash:'#/dashboard'},
+  {id:'new',label:'Ny offert',hash:'#/new'},
+  {id:'settings',label:'Inställningar',hash:'#/settings'}
+];
+function renderNav(){
+  var cur=location.hash||'#/';
+  var html=NAV.map(function(n){
+    var on=cur.indexOf(n.hash)===0;
+    return '<a href="'+n.hash+'" class="'+(on?'on':'')+'">'+n.label+'</a>';
+  }).join('');
+  if(OP_PROFILE&&OP_PROFILE.is_admin)html+='<a href="#/admin" class="'+(cur.indexOf('#/admin')===0?'on':'')+'">Admin</a>';
+  document.getElementById('topnav').innerHTML=html;
+  document.getElementById('mobnav').innerHTML=html;
+  document.getElementById('mobnav').addEventListener('click',function(){this.classList.remove('open');});
+}
 function route(){
-  var h=location.hash||'#/';navLinks();
-  var authMode=h.indexOf('#/signup')===0?'up':h.indexOf('#/login')===0?'in':h.indexOf('#/reset')===0?'reset':null;
+  var h=location.hash||'#/';
   if(!OP_USER){
-    appEl().hidden=!authMode;landingEl().hidden=!!authMode;window.scrollTo(0,0);
-    document.querySelector('.topbar').style.display=authMode?'none':'';
-    if(authMode)renderAuth(authMode);
+    if(h==='#/login')showAuth('login');
+    else if(h==='#/signup')showAuth('signup');
+    else showLanding();
     return;
   }
-  landingEl().hidden=true;appEl().hidden=false;
-  if(OP_PROFILE&&!OP_PROFILE.onboarding_done){renderOnboarding();return;}
-  if(h.indexOf('#/dashboard')===0||h==='#/'||h==='#')renderDashboard();
-  else if(h.indexOf('#/new')===0)renderOfferEditor(null);
-  else if(h.indexOf('#/offer/')===0)openOffer(h.split('#/offer/')[1]);
-  else if(h.indexOf('#/installningar')===0)renderSettings();
-  else if(h.indexOf('#/priser')===0)renderPricing();
-  else if(h.indexOf('#/admin')===0)renderAdmin();
-  else if(h.indexOf('#/logout')===0)doLogout();
-  else if(h.indexOf('#/login')===0)renderAuth('in');
-  else if(h.indexOf('#/signup')===0)renderAuth('up');
-  else if(h.indexOf('#/reset')===0)renderAuth('reset');
+  if(!OP_PROFILE){return;}
+  if(!OP_PROFILE.onboarding_done&&h!=='#/onboarding'){location.hash='#/onboarding';return;}
+  showApp();renderNav();
+  if(h==='#/'||h==='#/dashboard')renderDashboard();
+  else if(h==='#/new')openOffer(null);
+  else if(h.indexOf('#/offer/')===0)openOffer(h.slice(8));
+  else if(h==='#/settings')renderSettings();
+  else if(h==='#/admin')renderAdmin();
+  else if(h==='#/onboarding')renderOnboarding();
   else renderDashboard();
 }
 window.addEventListener('hashchange',route);
 
-function doLogout(){sb.auth.signOut().then(function(){OP_USER=null;OP_PROFILE=null;OP_OFFERS=null;location.hash='#/';route();toast('Utloggad.');});}
-
-/* ---------- Auth ---------- */
-function renderAuth(mode){
-  var up=mode==='up',rs=mode==='reset';
-  root().innerHTML='<div class="authwrap"><div class="card">'+
-    '<h1>'+(up?'Skapa konto':rs?'Återställ lösenord':'Logga in')+'</h1>'+
-    '<p class="mut" style="margin-bottom:16px">'+(up?'Gratis under betan, inget betalkort.':'Välkommen tillbaka.')+'</p>'+
-    '<div class="tabs"><button id="a-in" class="'+(!up?'on':'')+'">Logga in</button><button id="a-up" class="'+(up?'on':'')+'">Skapa konto</button></div>'+
-    '<div class="field"><label>E-post</label><input id="a-em" type="email" autocomplete="username"></div>'+
-    (rs?'':'<div class="field"><label>Lösenord</label><input id="a-pw" type="password" autocomplete="current-password"></div>')+
-    (rs?'':'<div class="hint" style="margin:2px 0 14px"><a href="#/reset">Glömt lösenordet?</a></div>')+
-    '<button class="btn" id="a-go" style="width:100%">'+(rs?'Skicka återställningsmejl':up?'Skapa konto':'Logga in')+'</button>'+
-    '<div id="a-msg" class="hint"></div></div></div>';
-  document.getElementById('a-in').onclick=function(){location.hash='#/login';};
-  document.getElementById('a-up').onclick=function(){location.hash='#/signup';};
-  document.getElementById('a-go').onclick=function(){
-    var em=document.getElementById('a-em').value.trim(),pw=document.getElementById('a-pw');
-    if(!em)return toast('Fyll i e-post.',true);
-    if(rs){
-      sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname+'#/login'}).then(function(r){
-        if(r.error)toast(r.error.message,true);else{toast('Kolla din inkorg.');location.hash='#/login';}
-      });return;
-    }
-    if(!pw.value||pw.value.length<6)return toast('Lösenordet måste vara minst 6 tecken.',true);
-    var btn=document.getElementById('a-go');btn.disabled=true;btn.textContent='Ett ögonblick…';
-    var q=up?sb.auth.signUp({email:em,password:pw.value}):sb.auth.signInWithPassword({email:em,password:pw.value});
-    q.then(function(r){
-      btn.disabled=false;btn.textContent=up?'Skapa konto':'Logga in';
-      if(r.error){toast(r.error.message,true);return;}
-      if(r.data.session){OP_USER=r.data.user.id;OP_EMAIL=r.data.user.email||'';afterLogin();}
-      else{document.getElementById('a-msg').textContent='Kolla din inkorg och bekräfta kontot, sen loggar du in.';toast('Bekräfta via mejl.');}
-    });
-  };
-}
-
-function afterLogin(){
-  sb.from('op_profiles').select('*').eq('id',OP_USER).maybeSingle().then(function(r){
-    if(r.error){toast('Kunde inte läsa din profil: '+r.error.message,true);}
-    OP_PROFILE=r.data||null;
-    if(!OP_PROFILE){
-      sb.from('op_profiles').insert({id:OP_USER,email:OP_EMAIL}).then(function(ins){
-        OP_PROFILE=ins.data;logEv('signup');location.hash='#/dashboard';route();
-      });
-    }else{location.hash='#/dashboard';route();}
-  });
-}
-sb.auth.getSession().then(function(r){
-  var s=r.data&&r.data.session;
-  if(s){OP_USER=s.user.id;OP_EMAIL=s.user.email||'';afterLogin();}
-  else route();
-});
-sb.auth.onAuthStateChange(function(ev,sess){
-  if(ev==='SIGNED_IN'&&sess&&!OP_USER){OP_USER=sess.user.id;OP_EMAIL=sess.user.email||'';afterLogin();}
-});
-
-/* ---------- Onboarding ---------- */
+/* ---------- onboarding ---------- */
 function renderOnboarding(){
-  root().innerHTML='<div class="onb"><div class="steplab">Steg 1 av 1</div><h1>En sista sak: din firma.</h1>'+
-    '<p class="mut" style="margin:8px 0 18px">Det här hamnar på varje offert. Du kan ändra det när som helst.</p>'+
-    '<div class="card"><div class="field"><label>Firmanamn</label><input id="ob-co" placeholder="Till exempel: Måleri i Haninge AB"></div>'+
-    '<div class="row"><div class="field grow"><label>Telefon</label><input id="ob-ph" type="tel" placeholder="07X-XXX XX XX"></div>'+
-    '<div class="field grow"><label>Org.nummer (valfritt)</label><input id="ob-org" placeholder="556XXX-XXXX"></div></div>'+
-    '<button class="btn big" id="ob-go" style="width:100%">Kom igång</button></div></div>';
+  root().innerHTML='<div class="onb"><div class="steplab">Steg 1 av 1</div><h1>Lägg in din firma</h1>'+
+    '<p class="mut" style="margin:6px 0 16px;">Detta hamnar på varje offert. Du kan ändra det senare.</p>'+
+    '<div class="card"><div class="field" style="margin-bottom:12px;"><label>Firmanamn *</label><input id="ob-name" placeholder="t.ex. Måleri i Haninge AB"></div>'+
+    '<div class="row"><div class="field grow"><label>Org.nummer</label><input id="ob-org" placeholder="Valfritt, t.ex. 559123-4567"></div>'+
+    '<div class="field grow"><label>Telefon</label><input id="ob-phone" placeholder="070-123 45 67"></div></div>'+
+    '<button class="btn" id="ob-go" style="margin-top:16px;">Kom igång</button></div></div>';
   document.getElementById('ob-go').onclick=function(){
-    var co=document.getElementById('ob-co').value.trim();
-    if(!co)return toast('Firmanamn behövs, det hamnar på offerten.',true);
-    sb.from('op_profiles').update({company_name:co,phone:document.getElementById('ob-ph').value.trim(),
-      org_no:document.getElementById('ob-org').value.trim(),onboarding_done:true}).eq('id',OP_USER).then(function(r){
-      if(r.error)return toast('Kunde inte spara: '+r.error.message,true);
-      OP_PROFILE.onboarding_done=true;logEv('onboarding_done');toast('Klart! Bygg din första offert.');
-      location.hash='#/new';route();
+    var name=document.getElementById('ob-name').value.trim();
+    if(!name){toast('Firmanamn krävs.',true);return;}
+    sb.from('op_profiles').update({
+      company_name:name,org_no:document.getElementById('ob-org').value.trim(),
+      phone:document.getElementById('ob-phone').value.trim(),onboarding_done:true
+    }).eq('user_id',OP_PROFILE.user_id).then(function(r){
+      if(r.error){toast('Kunde inte spara: '+r.error.message,true);return;}
+      OP_PROFILE.onboarding_done=true;OP_PROFILE.company_name=name;
+      logEv('onboarding_done');
+      location.hash='#/dashboard';
     });
   };
 }
 
-/* ---------- Dashboard ---------- */
-function offerTotal(o){
-  var sum=(o.items||[]).reduce(function(a,it){return a+(Number(it.qty)||0)*(Number(it.price)||0);},0);
-  var labour=(o.items||[]).filter(function(it){return it.unit==='tim';}).reduce(function(a,it){return a+(Number(it.qty)||0)*(Number(it.price)||0);},0);
-  var rot=o.rot?labour*0.3:0;
-  var vat=((sum-rot)*(Number(o.vat)||0)/100);
-  return {sum:sum,rot:rot,vat:vat,total:sum-rot+vat};
-}
-function loadOffers(cb){
-  if(OP_OFFERS)return cb(OP_OFFERS);
-  root().innerHTML='<div class="skel" style="width:40%"></div><div class="skel"></div><div class="skel"></div>';
-  sb.from('op_offers').select('*').order('created_at',{ascending:false}).then(function(r){
-    if(r.error){toast('Kunde inte hämta offerter: '+r.error.message,true);OP_OFFERS=[];}
-    else OP_OFFERS=r.data;
-    cb(OP_OFFERS);
-  });
-}
+/* ---------- dashboard ---------- */
 function renderDashboard(){
   loadOffers(function(list){
     var now=new Date(),mNow=now.getMonth()+'-'+now.getFullYear();
@@ -156,18 +153,19 @@ function renderDashboard(){
       return '<tr class="click" data-id="'+o.id+'"><td>#'+o.number+'</td><td>'+esc(o.customer_name)+'</td><td>'+kr(t.total)+'</td>'+
       '<td><span class="badge '+esc(o.status)+'">'+esc(o.status)+'</span></td><td class="mut">'+dstr(o.created_at)+'</td></tr>';}).join('');
     root().innerHTML=
-      '<div class="viewhead"><h1>Dashboard</h1><div style="margin-left:auto"><a class="btn" href="#/new">＋ Ny offert</a></div></div>'+
+      '<div class="viewhead"><h1>'+greet()+(OP_PROFILE&&OP_PROFILE.company_name?', '+esc(OP_PROFILE.company_name):'')+'</h1><div style="margin-left:auto"><a class="btn" href="#/new">＋ Ny offert</a></div></div>'+
+      '<p class="mut">'+tagline()+'</p>'+
       '<div class="statrow">'+
-      '<div class="card stat"><div class="lab">Offerter denna månad</div><div class="v">'+thisM.length+'</div></div>'+
-      '<div class="card stat"><div class="lab">Accepterade (alla)</div><div class="v">'+acc.length+' <span class="mini mut">('+conv+'%)</span></div></div>'+
-      '<div class="card stat"><div class="lab">Värde accepterat</div><div class="v">'+kr(accVal)+'</div></div>'+
-      '<div class="card stat"><div class="lab">Pågår (skickat)</div><div class="v">'+kr(sentVal)+'</div></div>'+
+      '<div class="card stat lift"><div class="lab">Offerter denna månad</div><div class="v vgrad" id="s1">0</div></div>'+
+      '<div class="card stat lift"><div class="lab">Accepterade (alla)</div><div class="v vgrad" id="s2">0</div><div class="mini mut" id="s2b"></div></div>'+
+      '<div class="card stat lift"><div class="lab">Värde accepterat</div><div class="v vgrad" id="s3">0</div></div>'+
+      '<div class="card stat lift"><div class="lab">Pågår (skickat)</div><div class="v" id="s4">0</div></div>'+
       '</div>'+
       '<div class="row" style="margin:8px 0"><div class="grow"><input id="q" placeholder="Sök kund…"></div>'+
       '<div style="width:170px"><select id="f"><option value="">Alla status</option><option>utkast</option><option>skickad</option><option>accepterad</option><option>avslagen</option></select></div>'+
       '<div style="width:170px"><select id="s"><option value="ny">Nyaste först</option><option value="belopp">Belopp</option></select></div></div>'+
       (list.length?'<div class="tw"><table class="list"><thead><tr><th>Nr</th><th>Kund</th><th>Belopp</th><th>Status</th><th>Datum</th></tr></thead><tbody id="tb">'+rows+'</tbody></table></div>'
-        :'<div class="empty"><b>Inga offerter än.</b><p style="margin-top:6px">Din första offert tar två minuter.</p><a class="btn" style="margin-top:14px" href="#/new">Bygg din första offert</a></div>');
+        :'<div class="empty"><b>Inga offerter än. Dags att ändra på det.</b><p style="margin-top:6px">Din första offert tar två minuter, och den första är alltid den roligaste.</p><a class="btn" style="margin-top:14px" href="#/new">Bygg din första offert</a></div>');
     function apply(){
       var q=document.getElementById('q').value.toLowerCase(),f=document.getElementById('f').value,s=document.getElementById('s').value;
       var l=list.filter(function(o){return (!q||o.customer_name.toLowerCase().indexOf(q)!==-1)&&(!f||o.status===f);});
@@ -182,6 +180,58 @@ function renderDashboard(){
     document.getElementById('tb').onclick=function(e){
       var tr=e.target.closest('tr[data-id]');if(tr)location.hash='#/offer/'+tr.getAttribute('data-id');
     };
+    countUp(document.getElementById('s1'),thisM.length);
+    countUp(document.getElementById('s2'),acc.length);
+    document.getElementById('s2b').textContent='('+conv+' % vinst)';
+    countUp(document.getElementById('s3'),accVal,'kr');
+    countUp(document.getElementById('s4'),sentVal,'kr');
+  });
+}
+
+function greet(){
+  var h=new Date().getHours();
+  if(h<5)return 'Sen kväll';
+  if(h<10)return 'God morgon';
+  if(h<12)return 'God förmiddag';
+  if(h<18)return 'God eftermiddag';
+  return 'God kväll';
+}
+var TAGS=['En offert idag är ett jobb nästa vecka.','Skicka den innan du hunnit ändra dig.','Konkurrenterna skriver sina offerter på kvällen. Du inte.','Firman växer, en offert i taget.','Bästa kunden är den som sagt ja. Nästa offert är ett klick bort.'];
+function tagline(){return TAGS[Math.floor(Math.random()*TAGS.length)];}
+function confetti(n){
+  n=n||70;
+  var colors=['#5a5fe0','#3d43c9','#8a5fe0','#0e9f6e','#f0b429','#c2334d'];
+  for(var i=0;i<n;i++){
+    var s=document.createElement('span');
+    s.className='cf';
+    s.style.left=(Math.random()*100)+'vw';
+    s.style.background=colors[Math.floor(Math.random()*colors.length)];
+    s.style.animationDuration=(1.6+Math.random()*1.8)+'s';
+    s.style.animationDelay=(Math.random()*0.4)+'s';
+    s.style.width=(5+Math.random()*6)+'px';
+    s.style.height=(8+Math.random()*9)+'px';
+    document.body.appendChild(s);
+    (function(el){setTimeout(function(){el.remove();},4200);})(s);
+  }
+}
+function countUp(el,end,suffix){
+  if(!el)return;
+  var t0=null,dur=700;
+  function step(ts){
+    if(!t0)t0=ts;
+    var p=Math.min((ts-t0)/dur,1);
+    var eased=1-Math.pow(1-p,3);
+    var v=end*eased;
+    el.textContent=(suffix==='kr'?kr(Math.round(v)):String(Math.round(v)));
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function loadOffers(cb){
+  sb.from('op_offers').select('*').then(function(r){
+    if(r.error){toast('Kunde inte hämta offerter: '+r.error.message,true);OP_OFFERS=[];cb(OP_OFFERS);return;}
+    OP_OFFERS=r.data||[];cb(OP_OFFERS);
   });
 }
 
@@ -205,23 +255,56 @@ function renderSettings(){
   document.getElementById('st-save').onclick=function(){
     sb.from('op_profiles').update({company_name:document.getElementById('st-co').value.trim(),
       phone:document.getElementById('st-ph').value.trim(),org_no:document.getElementById('st-org').value.trim(),
-      contact_email:document.getElementById('st-em').value.trim()}).eq('id',OP_USER).then(function(r){
-      if(r.error)toast('Kunde inte spara: '+r.error.message,true);
-      else{Object.assign(OP_PROFILE,{company_name:document.getElementById('st-co').value.trim()});toast('Sparat.');}
+      contact_email:document.getElementById('st-em').value.trim()}).eq('user_id',OP_PROFILE.user_id).then(function(r){
+      if(r.error){toast('Kunde inte spara: '+r.error.message,true);return;}
+      OP_PROFILE.company_name=document.getElementById('st-co').value.trim();toast('Sparat ✓');
     });
   };
   document.getElementById('st-keysave').onclick=function(){
-    try{localStorage.setItem('op_groq_key',document.getElementById('st-key').value.trim());}catch(e){}
-    toast('Nyckel sparad på den här enheten.');
+    var k=document.getElementById('st-key').value.trim();
+    if(!k){localStorage.removeItem('op_groq_key');toast('Nyckeln borttagen.');return;}
+    localStorage.setItem('op_groq_key',k);toast('Nyckeln sparad i webbläsaren ✓');
   };
-  document.getElementById('st-out').onclick=doLogout;
+  document.getElementById('st-out').onclick=function(){sb.auth.signOut();};
 }
 
-/* ---------- Priser (inloggad vy) ---------- */
-function renderPricing(){
-  root().innerHTML='<h1>Priser</h1><p class="mut" style="margin-bottom:6px">Under betan är allt öppet och gratis, utan betalkort. Betalning kopplas in via Stripe innan lanseringen.</p>'+
-    '<div class="pgrid">'+
-    '<div class="card pcard"><h3>Free</h3><div class="pr">0 kr <small>/ månad</small></div><ul><li>3 offerter per månad</li><li>PDF och ROT-beräkning</li><li>Statusspårning</li></ul></div>'+
-    '<div class="card pcard hl"><h3>Pro</h3><div class="pr">149 kr <small>/ månad</small></div><ul><li>Obegränsat antal offerter</li><li>AI-poster</li><li>All statistik</li></ul></div>'+
-    '<div class="card pcard"><h3>Business</h3><div class="pr">299 kr <small>/ månad</small></div><ul><li>Flera användare i firman</li><li>Gemensam kundlista</li></ul></div></div>';
+/* ---------- Admin ---------- */
+function renderAdmin(){
+  if(!OP_PROFILE||!OP_PROFILE.is_admin){
+    root().innerHTML='<h1>Admin</h1><div class="empty" style="max-width:520px;margin-top:18px">Du har inte adminrättigheter.</div>';
+    return;
+  }
+  root().innerHTML='<h1>Admin</h1><div class="skel" style="width:40%"></div><div class="skel"></div><div class="skel"></div>';
+  Promise.all([
+    sb.from('op_profiles').select('*').order('created_at',{ascending:false}),
+    sb.from('op_offers').select('id,status,vat,rot,items,created_at'),
+    sb.from('op_events').select('event,user_id,created_at').gte('created_at',new Date(Date.now()-7*864e5).toISOString())
+  ]).then(function(rs){
+    var profs=rs[0].data||[],offers=rs[1].data||[],evs=rs[2].data||[];
+    var last7=evs.filter(function(e){return e.event==='offer_created';}).length;
+    var active=new Set(evs.map(function(e){return e.user_id;})).size;
+    var acc=offers.filter(function(o){return o.status==='accepterad';}).length;
+    root().innerHTML='<h1>Admin</h1>'+
+      '<div class="statrow">'+
+      '<div class="card stat"><div class="lab">Användare</div><div class="v">'+profs.length+'</div></div>'+
+      '<div class="card stat"><div class="lab">Offerter totalt</div><div class="v">'+offers.length+'</div></div>'+
+      '<div class="card stat"><div class="lab">Aktiva (7 dagar)</div><div class="v">'+active+'</div></div>'+
+      '<div class="card stat"><div class="lab">Offerter (7 dagar)</div><div class="v">'+last7+'</div></div>'+
+      '<div class="card stat"><div class="lab">Accepterade</div><div class="v">'+acc+'</div></div>'+
+      '<div class="card stat"><div class="lab">Systemstatus</div><div class="v" style="color:var(--good);font-size:1.2rem">OK</div></div>'+
+      '</div>'+
+      '<div class="tw"><table class="list"><thead><tr><th>Företag</th><th>Mejl</th><th>Onboardad</th><th>Admin</th><th>Registrerad</th></tr></thead><tbody>'+
+      profs.map(function(u){return '<tr><td>'+esc(u.company_name||'(ej satt)')+'</td><td>'+esc(u.email||'')+'</td><td>'+(u.onboarding_done?'✓':'–')+'</td><td>'+(u.is_admin?'✓':'–')+'</td><td class="mut">'+dstr(u.created_at)+'</td></tr>';}).join('')+
+      '</tbody></table></div>';
+  }).catch(function(){root().innerHTML='<h1>Admin</h1><div class="empty">Kunde inte hämta data. Försök igen.</div>';});
 }
+
+/* ---------- boot ---------- */
+sb.auth.getSession().then(function(r){
+  if(r.data&&r.data.session){afterLogin(r.data.session.user);}
+  else route();
+});
+sb.auth.onAuthStateChange(function(ev,session){
+  if(ev==='SIGNED_OUT'){OP_USER=null;OP_PROFILE=null;OP_OFFERS=null;location.hash='#/';route();return;}
+  if(session&&session.user&&OP_USER!==session.user.email){afterLogin(session.user);}
+});
