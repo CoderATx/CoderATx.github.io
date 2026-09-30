@@ -85,6 +85,11 @@ function renderOfferEditor(o){
       rot:document.getElementById('of-rot').checked,
       status:document.getElementById('of-status').value,notes:o.notes||''};
   }
+  function refreshCache(obj){
+    if(!OP_OFFERS)OP_OFFERS=[];
+    var i=OP_OFFERS.findIndex(function(x){return x.id===obj.id;});
+    if(i===-1)OP_OFFERS.unshift(obj);else OP_OFFERS[i]=obj;
+  }
   function save(){
     var c=collect();
     if(!c.customer_name){toast('Kundens namn krävs.',true);return Promise.resolve(null);}
@@ -108,13 +113,12 @@ function renderOfferEditor(o){
       Object.assign(o,c);refreshCache(o);toast('Sparat.');return o;
     });
   }
-  function refreshCache(obj){
-    if(!OP_OFFERS)OP_OFFERS=[];
-    var i=OP_OFFERS.findIndex(function(x){return x.id===obj.id;});
-    if(i===-1)OP_OFFERS.unshift(obj);else OP_OFFERS[i]=obj;
-  }
   document.getElementById('of-save').onclick=function(){save();};
-  document.getElementById('of-status').onchange=function(){if(!isNew)save();};
+  document.getElementById('of-status').onchange=function(){
+    if(isNew)return;
+    if(this.value==='accepterad'&&o.status!=='accepterad'){confetti(80);toast('Grattis! Jobbet är ditt 🎉');}
+    save();
+  };
   if(document.getElementById('of-del'))document.getElementById('of-del').onclick=function(){
     if(!confirm('Radera offert #'+o.number+'? Det går inte att ångra.'))return;
     sb.from('op_offers').delete().eq('id',o.id).then(function(){
