@@ -1,4 +1,4 @@
-/* FORWARD - Konto: valfri inloggning (Supabase) + molnsynk */
+/* FORWARD - Konto: valfri inloggning (Supabase) + molnsynk, automatisk lokal sparining */
 (function(){
   var SB_URL = 'https://uxeaxqzovrtnqaialzsk.supabase.co';
   var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4ZWF4cXpvdnJ0bnFhaWFsenNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MDUwNzEsImV4cCI6MjA5NzQ4MTA3MX0.Xm9hj1ZiH10sjBiYuh-Fzm5lIsqcGLxC9NbynyySbNY';
@@ -8,7 +8,6 @@
   var sb = null, currentUser = null, syncTimer = null, hooked = false, lastErr = 0;
 
   function getKey(){ try { return (localStorage.getItem(KEY_STORE) || '').trim(); } catch(e){ return ''; } }
-  function esc2(s){ return typeof esc === 'function' ? esc(s) : String(s == null ? '' : s); }
   function val(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
   function setStatus(t){ var el = document.getElementById('acct-status'); if (el) el.textContent = t; }
   function syncFail(){
@@ -52,6 +51,12 @@
       return ((d.workouts||[]).length + (d.trainingDays||[]).length + (d.goals||[]).length + (d.habits||[]).length) > 0;
     } catch(e){ return false; }
   }
+  function localSavedAt(){
+    var t = 0;
+    try { t = new Date(localStorage.getItem('forward_app_data_v1_saved_at') || 0).getTime() || 0; } catch(e){}
+    try { var w = new Date(localStorage.getItem('forward_last_write') || 0).getTime() || 0; if (w > t) t = w; } catch(e){}
+    return t;
+  }
 
   function upload(){
     if (!sb || !currentUser) return Promise.resolve(false);
@@ -62,7 +67,7 @@
   }
   function download(){
     if (!sb || !currentUser) return Promise.resolve(null);
-    return sb.from('forward_data').select('data').eq('user_id', currentUser).maybeSingle()
+    return sb.from('forward_data').select('data,updated_at').eq('user_id', currentUser).maybeSingle()
       .then(function(res){ if (res.error) throw res.error; return res.data; });
   }
 
@@ -71,12 +76,21 @@
     var orig = Storage.prototype.setItem;
     Storage.prototype.setItem = function(k, v){
       orig.call(this, k, v);
-      if (currentUser && typeof k === 'string' && k.indexOf('forward_') === 0 && k !== KEY_STORE){
-        clearTimeout(syncTimer);
-        syncTimer = setTimeout(upload, 1500);
+      if (typeof k === 'string' && k.indexOf('forward_') === 0 && k !== KEY_STORE && k !== 'forward_last_write'){
+        orig.call(this, 'forward_last_write', new Date().toISOString());
+        if (currentUser){
+          clearTimeout(syncTimer);
+          syncTimer = setTimeout(upload, 1500);
+        }
       }
     };
     window.addEventListener('beforeunload', function(){ if (currentUser) upload(); });
+  }
+
+  function applyCloud(cloud){
+    restore(cloud);
+    if (typeof db !== 'undefined' && typeof loadDB === 'function'){ db = loadDB(); }
+    if (typeof renderAll === 'function') renderAll();
   }
 
   function afterAuth(uid, silent){
@@ -84,12 +98,19 @@
     hookWrites();
     download().then(function(row){
       var cloud = (row && row.data && Object.keys(row.data).length) ? row.data : null;
-      if (cloud && (!localHasData() || confirm('Kontot har sparad data.\n\nOK = hämta data från kontot till den här enheten\nAvbryt = behåll enhetens data och skriv över kontot'))){
-        restore(cloud);
-        if (typeof db !== 'undefined' && typeof loadDB === 'function'){ db = loadDB(); }
-        if (typeof renderAll === 'function') renderAll();
+      if (!cloud){ upload(); return; }
+      var cAt = 0;
+      try { cAt = new Date(row.updated_at || 0).getTime() || 0; } catch(e){}
+      var useCloud;
+      if (silent){
+        useCloud = cAt > localSavedAt();
+      } else {
+        useCloud = !localHasData() || confirm('Kontot har sparad data.\n\nOK = hämta data från kontot till den här enheten\nAvbryt = behåll enhetens data och skriv över kontot');
+      }
+      if (useCloud){
+        applyCloud(cloud);
         if (!silent && typeof toast === 'function') toast('Data hämtad från kontot ✓');
-      } else if (!cloud || localHasData()){
+      } else {
         upload();
       }
     }).catch(function(){
@@ -145,7 +166,7 @@
         '<button class="btn ghost" id="acct-up">Skapa konto</button>' +
         '<button class="btn danger" id="acct-out" style="display:none;">Logga ut</button>' +
       '</div>' +
-      '<div class="label" style="margin-top:12px;">Utan konto fungerar allt som vanligt och datan sparas bara på den här enheten. Med konto synkas träning, mat och mål automatiskt mellan dina enheter.</div>';
+      '<div class="label" style="margin-top:12px;">Allt sparas automatiskt på enheten du använder efter varje ändring. Utan konto stannar datan bara på den här enheten; med konto synkas träning, mat och mål mellan dina enheter.</div>';
     grid.appendChild(card);
     card.querySelector('#acct-in').onclick = signIn;
     card.querySelector('#acct-up').onclick = signUp;
